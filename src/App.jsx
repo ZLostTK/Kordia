@@ -1,10 +1,10 @@
-import Input from '@/Components/ui/Input.jsx'
 import "boxicons"
+import CardList from "@/Components/ui/CardList"
 
 function App() {
   return (
     <>
-      <Input />
+      <CardList />
     </>
   )
 }

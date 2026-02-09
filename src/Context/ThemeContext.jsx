@@ -18,7 +18,6 @@ export function ThemeContextProvider({ children }) {
         }
     }, [theme]);
 
-
     return (
         <ThemeContext.Provider value={{ theme, setTheme }}>
             {children}
