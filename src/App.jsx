@@ -1,10 +1,10 @@
+import CardPlayList from "@/Components/ui/CardPlayList"
 import "boxicons"
-import CardList from "@/Components/ui/CardList"
 
 function App() {
   return (
     <>
-      <CardList />
+      <CardPlayList />
     </>
   )
 }

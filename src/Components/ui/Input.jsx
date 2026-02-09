@@ -1,6 +1,6 @@
 export default function Input() {
     return (
-        <div className="flex items-center justify-center gap-2 w-full h-12 bg-gray-100 text-gray-400 dark:bg-gray-900 dark:text-gray-200 rounded-lg py-4 px-2">
+        <section className="flex items-center justify-center gap-2 w-full h-12 bg-gray-100 text-gray-400 dark:bg-gray-900 dark:text-gray-200 rounded-lg py-4 px-2">
             <div className="relative flex items-center justify-center">
                 <box-icon
                     name='search-alt'
@@ -13,6 +13,6 @@ export default function Input() {
                 type="search"
                 placeholder="Buscar..."
             />
-        </div>
+        </section>
     )
 }
