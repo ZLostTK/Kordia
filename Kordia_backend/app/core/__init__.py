@@ -2,7 +2,7 @@
 Core utilities
 """
 from app.core.exceptions import (
-    MusifyException,
+    KordiaException,
     YouTubeException,
     CacheException,
     StorageException,
@@ -12,7 +12,7 @@ from app.core.exceptions import (
 from app.core.middleware import LoggingMiddleware, ErrorHandlingMiddleware
 
 __all__ = [
-    "MusifyException",
+    "KordiaException",
     "YouTubeException",
     "CacheException",
     "StorageException",

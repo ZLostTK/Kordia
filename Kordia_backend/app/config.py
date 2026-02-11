@@ -1,5 +1,5 @@
 """
-Configuración centralizada de la aplicación Musify Backend
+Configuración centralizada de la aplicación Kordia Backend
 """
 from pathlib import Path
 from typing import Optional, Union
@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     """Configuración de la aplicación"""
     
     # Información de la aplicación
-    app_name: str = "Musify API"
+    app_name: str = "Kordia API"
     app_version: str = "2.0.0"
     debug: bool = False
     
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
         return v
     
     # Directorios de datos
-    data_dir: Path = Path("./musify_data")
+    data_dir: Path = Path("./Kordia_data")
     
     @property
     def audio_dir(self) -> Path:
@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     
     @property
     def db_path(self) -> Path:
-        return self.data_dir / "musify.db"
+        return self.data_dir / "Kordia.db"
     
     # Configuración de caché
     cache_ttl: int = 5400  # 1.5 horas en segundos

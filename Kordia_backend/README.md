@@ -1,4 +1,4 @@
-# Musify Backend
+# Kordia Backend
 
 API REST moderna para reproducción y gestión de música desde YouTube, construida con FastAPI.
 
@@ -14,7 +14,7 @@ API REST moderna para reproducción y gestión de música desde YouTube, constru
 ## 🏗️ Arquitectura
 
 ```
-musify_backend/
+Kordia_backend/
 ├── app/
 │   ├── api/              # Rutas de la API
 │   ├── core/             # Utilidades core (excepciones, middleware)
@@ -60,7 +60,7 @@ musify_backend/
 
 1. **Clonar o navegar al directorio**
    ```bash
-   cd musify_backend
+   cd Kordia_backend
    ```
 
 2. **Crear entorno virtual**
@@ -135,13 +135,13 @@ Todas las configuraciones se pueden ajustar mediante variables de entorno o el a
 
 | Variable | Descripción | Default |
 |----------|-------------|---------|
-| `APP_NAME` | Nombre de la aplicación | Musify API |
+| `APP_NAME` | Nombre de la aplicación | Kordia API |
 | `APP_VERSION` | Versión | 2.0.0 |
 | `DEBUG` | Modo debug | false |
 | `HOST` | Host del servidor | 0.0.0.0 |
 | `PORT` | Puerto del servidor | 8000 |
 | `CORS_ORIGINS` | Orígenes CORS permitidos | * |
-| `DATA_DIR` | Directorio de datos | ./musify_data |
+| `DATA_DIR` | Directorio de datos | ./Kordia_data |
 | `CACHE_TTL` | TTL del caché (segundos) | 5400 |
 | `CACHE_MAX_SIZE` | Tamaño máximo del caché | 500 |
 | `CACHE_CLEANUP_DAYS` | Días para limpieza | 30 |
@@ -159,13 +159,13 @@ Todas las configuraciones se pueden ajustar mediante variables de entorno o el a
 
 ## 📁 Estructura de Datos
 
-Los datos se almacenan en `./musify_data/`:
+Los datos se almacenan en `./Kordia_data/`:
 
 ```
-musify_data/
+Kordia_data/
 ├── audio/          # Archivos de audio (.m4a)
 ├── artwork/        # Imágenes de portada (.jpg)
-└── musify.db       # Base de datos SQLite
+└── Kordia.db       # Base de datos SQLite
 ```
 
 ## 🔍 Ejemplos de Uso

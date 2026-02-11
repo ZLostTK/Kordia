@@ -1,5 +1,5 @@
 """
-Musify Backend - Punto de entrada de la aplicación
+Kordia Backend - Punto de entrada de la aplicación
 """
 import uvicorn
 from app import app
@@ -27,7 +27,7 @@ def main():
     # Configurar FFmpeg automáticamente
     setup_ffmpeg()
     
-    print("🎵 Iniciando Musify Backend...")
+    print("🎵 Iniciando Kordia Backend...")
     print(f"📝 Documentación API: http://{settings.host}:{settings.port}/docs")
     
     uvicorn.run(

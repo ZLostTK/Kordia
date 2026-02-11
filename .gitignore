@@ -35,7 +35,7 @@ env/
 ENV/
 
 # Data directories
-musify_data/
+Kordia_data/
 
 # Environment variables
 .env

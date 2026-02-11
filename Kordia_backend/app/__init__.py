@@ -1,5 +1,5 @@
 """
-Musify Backend - FastAPI Application Factory
+Kordia Backend - FastAPI Application Factory
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
