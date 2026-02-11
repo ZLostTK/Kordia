@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+yt-dlp
+aiofiles
+aiosqlite
+cachetools
+pillow
+python-dotenv
+pydantic-settings
+aiohttp
+static-ffmpeg

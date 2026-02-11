@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Musify - Reproductor de Música</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .progress-bar {
+            transition: width 0.1s linear;
+        }
+        .album-art {
+            transition: transform 0.3s ease;
+        }
+        .album-art:hover {
+            transform: scale(1.05);
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spinning {
+            animation: spin 20s linear infinite;
+        }
+        .paused {
+            animation-play-state: paused;
+        }
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        .notification-enter {
+            animation: slideInRight 0.3s ease-out;
+        }
+        .notification-exit {
+            animation: slideOutRight 0.3s ease-in;
+        }
+        @keyframes spin-loader {
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            animation: spin-loader 1s linear infinite;
+        }
+        .thumbnail-loading {
+            background: linear-gradient(90deg, #667eea 25%, #764ba2 50%, #667eea 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+    <div class="container mx-auto max-w-6xl">
+        <!-- Header -->
+        <header class="glass rounded-2xl p-6 mb-6 shadow-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-music text-4xl text-white"></i>
+                    <h1 class="text-3xl font-bold text-white">Musify</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="toggleOffline" class="glass px-4 py-2 rounded-lg text-white hover:bg-white/20 transition">
+                        <i class="fas fa-download mr-2"></i>
+                        <span>Offline (<span id="offlineCount">0</span>)</span>
+                    </button>
+                    <button id="settingsBtn" class="glass p-3 rounded-lg text-white hover:bg-white/20 transition">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Reproductor Principal -->
+            <div class="lg:col-span-2">
+                <div class="glass rounded-2xl p-8 shadow-2xl">
+                    <!-- Búsqueda -->
+                    <div class="mb-6">
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="searchInput" 
+                                placeholder="Buscar canciones en YouTube..."
+                                class="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-white/60 border border-white/20 focus:outline-none focus:border-white/40"
+                            >
+                            <button id="searchBtn" class="absolute right-2 top-2 px-4 py-1 bg-purple-500 rounded-lg hover:bg-purple-600 transition">
+                                <i class="fas fa-search text-white"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Álbum Art -->
+                    <div class="flex justify-center mb-6">
+                        <div id="albumArt" class="album-art w-64 h-64 bg-gradient-to-br from-purple-400 to-pink-400 rounded-2xl shadow-2xl flex items-center justify-center overflow-hidden">
+                            <i class="fas fa-music text-white text-6xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Info de la Canción -->
+                    <div class="text-center mb-6">
+                        <h2 id="songTitle" class="text-2xl font-bold text-white mb-2">Selecciona una canción</h2>
+                        <p id="songArtist" class="text-lg text-white/80">Sin artista</p>
+                    </div>
+
+                    <!-- Barra de Progreso -->
+                    <div class="mb-6">
+                        <div class="flex justify-between text-white/60 text-sm mb-2">
+                            <span id="currentTime">0:00</span>
+                            <span id="totalTime">0:00</span>
+                        </div>
+                        <div class="w-full h-2 bg-white/20 rounded-full cursor-pointer" id="progressContainer">
+                            <div id="progressBar" class="h-full bg-white rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Controles -->
+                    <div class="flex items-center justify-center space-x-6">
+                        <button id="shuffleBtn" class="text-white/60 hover:text-white transition text-xl">
+                            <i class="fas fa-random"></i>
+                        </button>
+                        <button id="prevBtn" class="text-white hover:scale-110 transition text-2xl">
+                            <i class="fas fa-step-backward"></i>
+                        </button>
+                        <button id="playPauseBtn" class="w-16 h-16 bg-white rounded-full flex items-center justify-center hover:scale-110 transition shadow-lg">
+                            <i class="fas fa-play text-purple-600 text-2xl"></i>
+                        </button>
+                        <button id="nextBtn" class="text-white hover:scale-110 transition text-2xl">
+                            <i class="fas fa-step-forward"></i>
+                        </button>
+                        <button id="repeatBtn" class="text-white/60 hover:text-white transition text-xl">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+
+                    <!-- Volumen -->
+                    <div class="flex items-center space-x-4 mt-6">
+                        <i class="fas fa-volume-down text-white"></i>
+                        <input 
+                            type="range" 
+                            id="volumeSlider" 
+                            min="0" 
+                            max="100" 
+                            value="70"
+                            class="flex-1 h-2 bg-white/20 rounded-full appearance-none cursor-pointer"
+                        >
+                        <i class="fas fa-volume-up text-white"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar - Cola de Reproducción -->
+            <div class="glass rounded-2xl p-6 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-white">Cola de Reproducción</h3>
+                    <button id="clearQueueBtn" class="text-white/60 hover:text-white transition">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                
+                <div id="queueList" class="space-y-2 max-h-96 overflow-y-auto">
+                    <!-- La cola se llenará dinámicamente -->
+                </div>
+
+                <!-- Canciones Offline -->
+                <div class="mt-6">
+                    <h3 class="text-xl font-bold text-white mb-4">
+                        <i class="fas fa-download mr-2"></i>Offline
+                    </h3>
+                    <div id="offlineList" class="space-y-2 max-h-48 overflow-y-auto">
+                        <!-- Las canciones offline se llenarán aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados de Búsqueda -->
+        <div id="searchResults" class="glass rounded-2xl p-6 shadow-2xl mt-6 hidden">
+            <h3 class="text-xl font-bold text-white mb-4">Resultados de Búsqueda</h3>
+            <div id="resultsList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Los resultados se llenarán aquí -->
+            </div>
+        </div>
+
+        <!-- Notificaciones de Descarga -->
+        <div id="downloadNotifications" class="fixed bottom-4 right-4 space-y-2 z-50" style="max-width: 400px;">
+            <!-- Las notificaciones de descarga aparecerán aquí -->
+        </div>
+    </div>
+
+    <!-- Audio Element (oculto) -->
+    <audio id="audioPlayer" preload="metadata"></audio>
+
+    <script>
+        // Configuración del API
+        const API_URL = 'http://localhost:8000'; // Cambiar según tu backend Python
+
+        // Estado de la aplicación
+        let state = {
+            currentSong: null,
+            queue: [],
+            currentIndex: 0,
+            isPlaying: false,
+            isShuffle: false,
+            repeatMode: 'off', // off, one, all
+            volume: 0.7,
+            offlineSongs: [],
+            downloadingIds: new Set() // Track songs being downloaded
+        };
+
+        // Elementos del DOM
+        const audioPlayer = document.getElementById('audioPlayer');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const repeatBtn = document.getElementById('repeatBtn');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const currentTimeEl = document.getElementById('currentTime');
+        const totalTimeEl = document.getElementById('totalTime');
+        const songTitle = document.getElementById('songTitle');
+        const songArtist = document.getElementById('songArtist');
+        const albumArt = document.getElementById('albumArt');
+        const queueList = document.getElementById('queueList');
+        const offlineList = document.getElementById('offlineList');
+        const searchResults = document.getElementById('searchResults');
+        const resultsList = document.getElementById('resultsList');
+        const downloadNotifications = document.getElementById('downloadNotifications');
+        const offlineCount = document.getElementById('offlineCount');
+
+        // Inicializar
+        async function init() {
+            loadFromLocalStorage();
+            setupEventListeners();
+            await loadOfflineSongs();
+            renderQueue();
+            renderOfflineSongs();
+            updateOfflineCount();
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            playPauseBtn.addEventListener('click', togglePlayPause);
+            prevBtn.addEventListener('click', playPrevious);
+            nextBtn.addEventListener('click', playNext);
+            shuffleBtn.addEventListener('click', toggleShuffle);
+            repeatBtn.addEventListener('click', toggleRepeat);
+            searchBtn.addEventListener('click', searchSongs);
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchSongs();
+            });
+            volumeSlider.addEventListener('input', (e) => {
+                state.volume = e.target.value / 100;
+                audioPlayer.volume = state.volume;
+            });
+            progressContainer.addEventListener('click', seekTo);
+            audioPlayer.addEventListener('timeupdate', updateProgress);
+            audioPlayer.addEventListener('ended', onSongEnd);
+            audioPlayer.addEventListener('loadedmetadata', onMetadataLoaded);
+
+            document.getElementById('clearQueueBtn').addEventListener('click', clearQueue);
+        }
+
+        // API Calls
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, options);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                showNotification(`Error: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function searchSongs() {
+            const query = searchInput.value.trim();
+            if (!query) return;
+
+            showNotification('Buscando...', 'info');
+            const results = await apiCall(`/search?q=${encodeURIComponent(query)}`);
+            if (results && results.length > 0) {
+                displaySearchResults(results);
+                showNotification(`${results.length} resultados encontrados`, 'success');
+            } else {
+                showNotification('No se encontraron resultados', 'warning');
+            }
+        }
+
+        async function getStreamUrl(ytid) {
+            const data = await apiCall(`/stream/${ytid}`);
+            return data ? data.url : null;
+        }
+
+        async function downloadSong(song) {
+            if (state.downloadingIds.has(song.ytid)) {
+                showNotification('Esta canción ya se está descargando', 'warning');
+                return;
+            }
+
+            // Check if already downloaded
+            if (state.offlineSongs.some(s => s.ytid === song.ytid)) {
+                showNotification('Esta canción ya está descargada', 'info');
+                return;
+            }
+
+            state.downloadingIds.add(song.ytid);
+            showDownloadNotification(song.ytid, song.title, 'downloading');
+
+            try {
+                const result = await apiCall(`/download/${song.ytid}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(song)
+                });
+                
+                if (result && result.success) {
+                    song.isOffline = true;
+                    state.offlineSongs.push(song);
+                    renderOfflineSongs();
+                    updateOfflineCount();
+                    saveToLocalStorage();
+                    showDownloadNotification(song.ytid, song.title, 'completed');
+                    showNotification(`"${song.title}" descargada exitosamente`, 'success');
+                } else {
+                    throw new Error('Descarga fallida');
+                }
+            } catch (error) {
+                showDownloadNotification(song.ytid, song.title, 'error');
+                showNotification(`Error al descargar "${song.title}"`, 'error');
+            } finally {
+                state.downloadingIds.delete(song.ytid);
+                setTimeout(() => removeDownloadNotification(song.ytid), 3000);
+            }
+        }
+
+        async function loadOfflineSongs() {
+            const data = await apiCall('/offline');
+            if (data && data.songs) {
+                state.offlineSongs = data.songs.map(song => ({
+                    ytid: song.ytid,
+                    title: song.title,
+                    artist: song.artist,
+                    thumbnail: song.thumbnail,
+                    isOffline: true
+                }));
+                renderOfflineSongs();
+                updateOfflineCount();
+            }
+        }
+
+        // Reproducción
+        async function playSong(song, index = null) {
+            state.currentSong = song;
+            if (index !== null) state.currentIndex = index;
+
+            songTitle.textContent = song.title || 'Canción sin título';
+            songArtist.textContent = song.artist || 'Artista desconocido';
+
+            // Actualizar álbum art con miniatura
+            if (song.thumbnail) {
+                const img = new Image();
+                img.onload = function() {
+                    albumArt.innerHTML = `<img src="${song.thumbnail}" alt="${song.title}" class="w-full h-full object-cover rounded-2xl">`;
+                };
+                img.onerror = function() {
+                    albumArt.innerHTML = `<i class="fas fa-music text-white text-6xl"></i>`;
+                };
+                img.src = song.thumbnail;
+                // Show loading placeholder
+                albumArt.innerHTML = `<div class="w-full h-full thumbnail-loading rounded-2xl"></div>`;
+            } else {
+                albumArt.innerHTML = `<i class="fas fa-music text-white text-6xl"></i>`;
+            }
+
+            // Obtener stream URL
+            const streamUrl = song.isOffline 
+                ? `${API_URL}/audio/${song.ytid}` 
+                : await getStreamUrl(song.ytid);
+
+            if (streamUrl) {
+                audioPlayer.src = streamUrl;
+                audioPlayer.volume = state.volume;
+                try {
+                    await audioPlayer.play();
+                    state.isPlaying = true;
+                    updatePlayPauseButton();
+                    albumArt.classList.add('spinning');
+                } catch (error) {
+                    console.error('Error playing song:', error);
+                    showNotification('Error al reproducir la canción', 'error');
+                }
+            }
+        }
+
+        function togglePlayPause() {
+            if (state.isPlaying) {
+                audioPlayer.pause();
+                state.isPlaying = false;
+                albumArt.classList.add('paused');
+            } else {
+                audioPlayer.play();
+                state.isPlaying = true;
+                albumArt.classList.remove('paused');
+            }
+            updatePlayPauseButton();
+        }
+
+        function updatePlayPauseButton() {
+            const icon = playPauseBtn.querySelector('i');
+            icon.className = state.isPlaying ? 'fas fa-pause text-purple-600 text-2xl' : 'fas fa-play text-purple-600 text-2xl';
+        }
+
+        function playNext() {
+            if (state.queue.length === 0) return;
+
+            if (state.isShuffle) {
+                state.currentIndex = Math.floor(Math.random() * state.queue.length);
+            } else {
+                state.currentIndex = (state.currentIndex + 1) % state.queue.length;
+            }
+
+            playSong(state.queue[state.currentIndex], state.currentIndex);
+            renderQueue();
+        }
+
+        function playPrevious() {
+            if (state.queue.length === 0) return;
+
+            state.currentIndex = state.currentIndex > 0 
+                ? state.currentIndex - 1 
+                : state.queue.length - 1;
+
+            playSong(state.queue[state.currentIndex], state.currentIndex);
+            renderQueue();
+        }
+
+        function onSongEnd() {
+            if (state.repeatMode === 'one') {
+                audioPlayer.currentTime = 0;
+                audioPlayer.play();
+            } else if (state.repeatMode === 'all' || state.currentIndex < state.queue.length - 1) {
+                playNext();
+            } else {
+                state.isPlaying = false;
+                updatePlayPauseButton();
+                albumArt.classList.add('paused');
+            }
+        }
+
+        // Controles
+        function toggleShuffle() {
+            state.isShuffle = !state.isShuffle;
+            shuffleBtn.classList.toggle('text-white', state.isShuffle);
+            shuffleBtn.classList.toggle('text-white/60', !state.isShuffle);
+        }
+
+        function toggleRepeat() {
+            const modes = ['off', 'all', 'one'];
+            const currentModeIndex = modes.indexOf(state.repeatMode);
+            state.repeatMode = modes[(currentModeIndex + 1) % modes.length];
+
+            const icon = repeatBtn.querySelector('i');
+            if (state.repeatMode === 'off') {
+                repeatBtn.classList.remove('text-white');
+                repeatBtn.classList.add('text-white/60');
+                icon.className = 'fas fa-redo';
+            } else if (state.repeatMode === 'all') {
+                repeatBtn.classList.remove('text-white/60');
+                repeatBtn.classList.add('text-white');
+                icon.className = 'fas fa-redo';
+            } else {
+                icon.className = 'fas fa-redo-alt';
+            }
+        }
+
+        function seekTo(e) {
+            const percent = e.offsetX / progressContainer.offsetWidth;
+            audioPlayer.currentTime = percent * audioPlayer.duration;
+        }
+
+        function updateProgress() {
+            const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100 || 0;
+            progressBar.style.width = `${percent}%`;
+            currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+        }
+
+        function onMetadataLoaded() {
+            totalTimeEl.textContent = formatTime(audioPlayer.duration);
+        }
+
+        function formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Notifications
+        function showNotification(message, type = 'info') {
+            // Use browser notifications if available
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Musify', { body: message });
+            }
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function showDownloadNotification(ytid, title, status) {
+            let notificationEl = document.getElementById(`download-${ytid}`);
+            
+            if (!notificationEl) {
+                notificationEl = document.createElement('div');
+                notificationEl.id = `download-${ytid}`;
+                notificationEl.className = 'glass rounded-lg p-4 shadow-lg notification-enter';
+                downloadNotifications.appendChild(notificationEl);
+            }
+
+            let icon, message, bgColor;
+            
+            if (status === 'downloading') {
+                icon = '<i class="fas fa-spinner spinner text-blue-400"></i>';
+                message = 'Descargando...';
+                bgColor = 'bg-blue-500/20';
+            } else if (status === 'completed') {
+                icon = '<i class="fas fa-check-circle text-green-400"></i>';
+                message = 'Completado';
+                bgColor = 'bg-green-500/20';
+            } else if (status === 'error') {
+                icon = '<i class="fas fa-exclamation-circle text-red-400"></i>';
+                message = 'Error';
+                bgColor = 'bg-red-500/20';
+            }
+
+            notificationEl.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="text-2xl">${icon}</div>
+                    <div class="flex-1">
+                        <p class="text-white font-semibold text-sm truncate">${title}</p>
+                        <p class="text-white/60 text-xs">${message}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function removeDownloadNotification(ytid) {
+            const notificationEl = document.getElementById(`download-${ytid}`);
+            if (notificationEl) {
+                notificationEl.classList.remove('notification-enter');
+                notificationEl.classList.add('notification-exit');
+                setTimeout(() => {
+                    notificationEl.remove();
+                }, 300);
+            }
+        }
+
+        // UI Rendering
+        function displaySearchResults(results) {
+            searchResults.classList.remove('hidden');
+            resultsList.innerHTML = '';
+
+            results.forEach(song => {
+                const div = document.createElement('div');
+                div.className = 'glass p-4 rounded-lg hover:bg-white/20 transition';
+                
+                const thumbnailUrl = song.thumbnail || '';
+                const isDownloading = state.downloadingIds.has(song.ytid);
+                const isDownloaded = state.offlineSongs.some(s => s.ytid === song.ytid);
+                
+                div.innerHTML = `
+                    <div class="flex items-center space-x-4">
+                        <div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-white/10">
+                            ${thumbnailUrl 
+                                ? `<img src="${thumbnailUrl}" alt="${song.title}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-music text-white/40 flex items-center justify-center h-full\\'></i>'">` 
+                                : `<i class="fas fa-music text-white/40 flex items-center justify-center h-full"></i>`
+                            }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="text-white font-semibold truncate">${song.title}</h4>
+                            <p class="text-white/60 text-sm truncate">${song.artist || 'Desconocido'}</p>
+                        </div>
+                        <div class="flex space-x-2 flex-shrink-0">
+                            <button class="text-white hover:text-purple-300 transition p-2" onclick="addToQueue(${JSON.stringify(song).replace(/"/g, '&quot;')})" title="Agregar a cola">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button 
+                                class="text-white transition p-2 ${isDownloaded ? 'text-green-400' : isDownloading ? 'text-blue-400' : 'hover:text-green-300'}" 
+                                onclick="downloadSong(${JSON.stringify(song).replace(/"/g, '&quot;')})"
+                                ${isDownloading || isDownloaded ? 'disabled' : ''}
+                                title="${isDownloaded ? 'Ya descargada' : isDownloading ? 'Descargando...' : 'Descargar'}">
+                                <i class="fas ${isDownloaded ? 'fa-check' : isDownloading ? 'fa-spinner spinner' : 'fa-download'}"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                resultsList.appendChild(div);
+            });
+        }
+
+        function addToQueue(song) {
+            state.queue.push(song);
+            renderQueue();
+            saveToLocalStorage();
+            showNotification(`"${song.title}" agregada a la cola`, 'success');
+        }
+
+        function renderQueue() {
+            queueList.innerHTML = '';
+            
+            if (state.queue.length === 0) {
+                queueList.innerHTML = '<p class="text-white/40 text-center py-8 text-sm">La cola está vacía</p>';
+                return;
+            }
+            
+            state.queue.forEach((song, index) => {
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-lg cursor-pointer transition ${
+                    index === state.currentIndex ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'
+                }`;
+                
+                const thumbnailUrl = song.thumbnail || '';
+                
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3 flex-1 min-w-0" onclick="playSong(state.queue[${index}], ${index})">
+                            <div class="w-10 h-10 rounded overflow-hidden flex-shrink-0 bg-white/10">
+                                ${thumbnailUrl 
+                                    ? `<img src="${thumbnailUrl}" alt="${song.title}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-music text-white/40 flex items-center justify-center h-full text-xs\\'></i>'">` 
+                                    : `<i class="fas fa-music text-white/40 flex items-center justify-center h-full text-xs"></i>`
+                                }
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h5 class="text-white text-sm font-medium truncate">${song.title}</h5>
+                                <p class="text-white/60 text-xs truncate">${song.artist || 'Desconocido'}</p>
+                            </div>
+                        </div>
+                        <button class="text-white/60 hover:text-red-400 ml-2 flex-shrink-0" onclick="event.stopPropagation(); removeFromQueue(${index})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                queueList.appendChild(div);
+            });
+        }
+
+        function removeFromQueue(index) {
+            state.queue.splice(index, 1);
+            if (state.currentIndex >= index && state.currentIndex > 0) {
+                state.currentIndex--;
+            }
+            renderQueue();
+            saveToLocalStorage();
+        }
+
+        function clearQueue() {
+            if (confirm('¿Estás seguro de que quieres limpiar toda la cola?')) {
+                state.queue = [];
+                state.currentIndex = 0;
+                renderQueue();
+                saveToLocalStorage();
+                showNotification('Cola limpiada', 'info');
+            }
+        }
+
+        function renderOfflineSongs() {
+            offlineList.innerHTML = '';
+            
+            if (state.offlineSongs.length === 0) {
+                offlineList.innerHTML = '<p class="text-white/40 text-center py-8 text-sm">No hay canciones offline</p>';
+                return;
+            }
+            
+            state.offlineSongs.forEach((song, index) => {
+                const div = document.createElement('div');
+                div.className = 'p-3 rounded-lg bg-white/10 hover:bg-white/20 cursor-pointer transition';
+                
+                const thumbnailUrl = song.thumbnail || '';
+                
+                div.innerHTML = `
+                    <div class="flex items-center justify-between" onclick="playSong(state.offlineSongs[${index}])">
+                        <div class="flex items-center space-x-3 flex-1 min-w-0">
+                            <div class="w-10 h-10 rounded overflow-hidden flex-shrink-0 bg-white/10">
+                                ${thumbnailUrl 
+                                    ? `<img src="${thumbnailUrl}" alt="${song.title}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-music text-white/40 flex items-center justify-center h-full text-xs\\'></i>'">` 
+                                    : `<i class="fas fa-music text-white/40 flex items-center justify-center h-full text-xs"></i>`
+                                }
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h5 class="text-white text-sm font-medium truncate">${song.title}</h5>
+                                <p class="text-white/60 text-xs truncate">${song.artist || 'Desconocido'}</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-download text-green-400 ml-2 flex-shrink-0"></i>
+                    </div>
+                `;
+                offlineList.appendChild(div);
+            });
+        }
+
+        function updateOfflineCount() {
+            offlineCount.textContent = state.offlineSongs.length;
+        }
+
+        // LocalStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('musify_state', JSON.stringify({
+                queue: state.queue,
+                currentIndex: state.currentIndex,
+                volume: state.volume,
+                isShuffle: state.isShuffle,
+                repeatMode: state.repeatMode
+            }));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('musify_state');
+            if (saved) {
+                const data = JSON.parse(saved);
+                state.queue = data.queue || [];
+                state.currentIndex = data.currentIndex || 0;
+                state.volume = data.volume || 0.7;
+                state.isShuffle = data.isShuffle || false;
+                state.repeatMode = data.repeatMode || 'off';
+                
+                volumeSlider.value = state.volume * 100;
+                audioPlayer.volume = state.volume;
+                
+                if (state.isShuffle) {
+                    shuffleBtn.classList.add('text-white');
+                    shuffleBtn.classList.remove('text-white/60');
+                }
+            }
+        }
+
+        // Request notification permissions
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        // Inicializar la aplicación
+        init();
+    </script>
+</body>
+</html>
