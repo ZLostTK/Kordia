@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import OfflineCachedView from './OfflineCachedView';
 import { usePlayer } from '../contexts/PlayerContext';
@@ -21,9 +21,17 @@ describe('OfflineCachedView', () => {
     (usePlayer as any).mockReturnValue({
       playSong: mockPlaySong,
     });
+    // Mock caches Match returning a response so tests show songs
+    (global.caches.open as any).mockResolvedValue({
+      match: vi.fn().mockResolvedValue({} as Response), // Simulate found
+    });
   });
 
-  it('renders correctly when there are downloaded songs', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('renders correctly when there are downloaded songs', async () => {
     (usePlaylists as any).mockReturnValue({
       downloadedPlaylist: {
         songs: [
@@ -37,11 +45,13 @@ describe('OfflineCachedView', () => {
 
     expect(screen.getByText('Modo Sin Conexión')).toBeInTheDocument();
     expect(screen.getByText(/Canciones en caché/)).toBeInTheDocument();
-    expect(screen.getByText('Song 1')).toBeInTheDocument();
-    expect(screen.getByText('Artist B')).toBeInTheDocument();
+    
+    // Check that songs render after async effect
+    expect(await screen.findByText('Song 1')).toBeInTheDocument();
+    expect(await screen.findByText('Artist B')).toBeInTheDocument();
   });
 
-  it('shows empty state when there are no downloaded songs', () => {
+  it('shows empty state when there are no downloaded songs', async () => {
     (usePlaylists as any).mockReturnValue({
       downloadedPlaylist: {
         songs: []
@@ -50,10 +60,10 @@ describe('OfflineCachedView', () => {
 
     render(<OfflineCachedView />);
 
-    expect(screen.getByText('No hay canciones descargadas')).toBeInTheDocument();
+    expect(await screen.findByText('No hay canciones descargadas')).toBeInTheDocument();
   });
 
-  it('plays all songs starting from the first one when clicking "Reproducir todo"', () => {
+  it('plays all songs starting from the first one when clicking "Reproducir todo"', async () => {
     const mockSongs = [
       { ytid: '1', title: 'Song 1', artist: 'Artist A' }
     ];
@@ -63,7 +73,7 @@ describe('OfflineCachedView', () => {
 
     render(<OfflineCachedView />);
 
-    const playAllBtn = screen.getByRole('button', { name: /Reproducir todo/i });
+    const playAllBtn = await screen.findByRole('button', { name: /Reproducir todo/i });
     fireEvent.click(playAllBtn);
 
     expect(mockPlaySong).toHaveBeenCalledTimes(1);

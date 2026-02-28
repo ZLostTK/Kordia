@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Playlist, Song } from '../types';
+import { api } from '../services/api';
 
 interface PlaylistContextType {
   playlists: Playlist[];
@@ -77,7 +78,11 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
   const downloadedPlaylist: Playlist = {
     id: 'downloaded',
     name: 'Descargadas',
-    songs: offlineSongs,
+    songs: offlineSongs.map(song => ({
+      ...song,
+      // Force URL to local cache endpoint so player doesn't fetch YouTube
+      url: song.url || api.getOfflineAudioUrl(song.ytid)
+    })),
     coverThumbnail: offlineSongs[0]?.thumbnail,
     createdAt: new Date(0).toISOString(),
   };
