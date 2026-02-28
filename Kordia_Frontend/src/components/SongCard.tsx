@@ -1,4 +1,4 @@
-import { Play, Download, Loader2, Plus } from 'lucide-react';
+import { Play, Download, Loader2, Plus, Check } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { Song, Playlist } from '../types';
 
@@ -7,6 +7,7 @@ interface SongCardProps {
   onPlay: (song: Song) => void;
   onDownload?: (song: Song) => void;
   isDownloading?: boolean;
+  isDownloaded?: boolean;
   showDownload?: boolean;
   playlists?: Playlist[];
   onAddToPlaylist?: (playlist: Playlist) => void;
@@ -17,6 +18,7 @@ export default function SongCard({
   onPlay,
   onDownload,
   isDownloading = false,
+  isDownloaded = false,
   showDownload = true,
   playlists = [],
   onAddToPlaylist,
@@ -86,13 +88,15 @@ export default function SongCard({
         {showDownload && onDownload && (
           <button
             onClick={e => { e.stopPropagation(); onDownload(song); }}
-            disabled={isDownloading}
-            className="bg-gray-900/80 hover:bg-purple-600 disabled:opacity-60 p-1.5 rounded-full transition"
-            title="Descargar"
+            disabled={isDownloading || isDownloaded}
+            className={`bg-gray-900/80 hover:bg-purple-600 disabled:opacity-60 p-1.5 rounded-full transition ${isDownloaded ? 'text-green-500' : 'text-white'}`}
+            title={isDownloaded ? "Descargado" : "Descargar"}
           >
             {isDownloading
               ? <Loader2 size={14} className="text-white animate-spin" />
-              : <Download size={14} className="text-white" />}
+              : isDownloaded 
+                ? <Check size={14} />
+                : <Download size={14} />}
           </button>
         )}
       </div>

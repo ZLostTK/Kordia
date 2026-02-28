@@ -18,6 +18,19 @@ export default function Search() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
+  const [offlineSongIds, setOfflineSongIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const fetchOffline = async () => {
+      try {
+        const songs = await api.getOfflineSongs();
+        setOfflineSongIds(new Set(songs.map(s => s.ytid)));
+      } catch (err) {
+        console.error("Failed to fetch offline songs for status", err);
+      }
+    };
+    fetchOffline();
+  }, []);
 
   // Auto-search cuando hay ?q= en la URL
   useEffect(() => {
@@ -35,7 +48,12 @@ export default function Search() {
       const searchResults = await api.search(q, 20);
       setResults(searchResults);
     } catch (error) {
-      sileo.error({ title: 'Error al buscar', description: 'Verifica tu conexión e intenta de nuevo' });
+      sileo.error({ 
+        title: 'Error al buscar', 
+        description: 'Verifica tu conexión e intenta de nuevo',
+        fill: "#171717",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -67,9 +85,14 @@ export default function Search() {
   };
 
   const handleDownload = async (result: SearchResult) => {
-    if (downloadingIds.has(result.ytid)) return;
+    if (downloadingIds.has(result.ytid) || offlineSongIds.has(result.ytid)) return;
     setDownloadingIds(prev => new Set(prev).add(result.ytid));
-    sileo.info({ title: 'Descargando...', description: result.title });
+    sileo.info({ 
+      title: 'Descargando...', 
+      description: result.title,
+      fill: "#171717",
+      styles: { title: "text-white!", description: "text-white/75!" }
+    });
     try {
       await api.downloadOffline({
         ytid: result.ytid,
@@ -77,9 +100,20 @@ export default function Search() {
         artist: result.artist,
         thumbnail: result.thumbnail,
       });
-      sileo.success({ title: 'Descarga completada', description: result.title });
+      setOfflineSongIds(prev => new Set(prev).add(result.ytid));
+      sileo.success({ 
+        title: 'Descarga completada', 
+        description: result.title,
+        fill: "#171717",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
     } catch {
-      sileo.error({ title: 'Error al descargar', description: result.title });
+      sileo.error({ 
+        title: 'Error al descargar', 
+        description: result.title,
+        fill: "#171717",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
     } finally {
       setDownloadingIds(prev => {
         const next = new Set(prev);
@@ -92,7 +126,11 @@ export default function Search() {
   const handleAddToPlaylist = (result: SearchResult, playlistId: string) => {
     const song: Song = { ytid: result.ytid, title: result.title, artist: result.artist, thumbnail: result.thumbnail };
     addSongToPlaylist(playlistId, song);
-    sileo.success({ title: 'Añadido a la playlist' });
+    sileo.success({ 
+      title: 'Añadido a la playlist',
+      fill: "#171717",
+      styles: { title: "text-white!", description: "text-white/75!" }
+    });
   };
 
   return (
@@ -127,6 +165,7 @@ export default function Search() {
               onPlay={() => handlePlay(result)}
               onDownload={() => handleDownload(result)}
               isDownloading={downloadingIds.has(result.ytid)}
+              isDownloaded={offlineSongIds.has(result.ytid)}
               playlists={playlists}
               onAddToPlaylist={(pl) => handleAddToPlaylist(result, pl.id)}
             />

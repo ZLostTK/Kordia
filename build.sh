@@ -46,5 +46,5 @@ if [ "$1" != "--no-start" ]; then
     echo "   → API docs en http://localhost:8000/docs"
     echo "   → Presiona Ctrl+C para detener"
     echo ""
-    python main.py
+    python3 -m app.main
 fi

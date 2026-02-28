@@ -3,7 +3,6 @@ import { Routes, Route } from 'react-router-dom';
 import { PlayerProvider } from './contexts/PlayerContext';
 import { PlaylistProvider } from './contexts/PlaylistContext';
 import Sidebar from './components/Sidebar';
-import MobileNav from './components/MobileNav';
 import Player from './components/Player';
 import Queue from './components/Queue';
 import Header from './components/Header';
@@ -37,7 +36,7 @@ function App() {
           <main className="flex-1 flex flex-col min-w-0">
             <Header onMenuClick={() => setSidebarOpen(true)} />
 
-            <div className="flex-1 overflow-y-auto pb-28">
+            <div className="flex-1 overflow-y-auto pb-24">
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/search" element={<Search />} />
@@ -50,7 +49,6 @@ function App() {
           </main>
 
           <Player onShowQueue={() => setShowQueue(true)} />
-          <MobileNav />
           <Queue isOpen={showQueue} onClose={() => setShowQueue(false)} />
         </div>
       </PlaylistProvider>

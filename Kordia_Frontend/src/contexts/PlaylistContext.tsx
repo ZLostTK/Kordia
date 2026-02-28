@@ -3,7 +3,7 @@ import { Playlist, Song } from '../types';
 
 interface PlaylistContextType {
   playlists: Playlist[];
-  createPlaylist: (name: string) => Playlist;
+  createPlaylist: (name: string, persistent?: boolean) => Playlist;
   deletePlaylist: (id: string) => void;
   renamePlaylist: (id: string, name: string) => void;
   addSongToPlaylist: (playlistId: string, song: Song) => void;
@@ -26,7 +26,8 @@ function loadPlaylists(): Playlist[] {
 }
 
 function savePlaylists(playlists: Playlist[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(playlists));
+  const toSave = playlists.filter(p => p.persistent !== false);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
 }
 
 export function PlaylistProvider({ children }: { children: ReactNode }) {
@@ -65,12 +66,13 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
 
   const playlists = [downloadedPlaylist, ...userPlaylists];
 
-  const createPlaylist = (name: string): Playlist => {
+  const createPlaylist = (name: string, persistent: boolean = true): Playlist => {
     const newPlaylist: Playlist = {
       id: `pl_${Date.now()}`,
       name,
       songs: [],
       createdAt: new Date().toISOString(),
+      persistent,
     };
     setUserPlaylists(prev => [...prev, newPlaylist]);
     return newPlaylist;

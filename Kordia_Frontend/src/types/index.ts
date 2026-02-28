@@ -31,6 +31,7 @@ export interface Playlist {
   songs: Song[];
   createdAt: string;
   coverThumbnail?: string;
+  persistent?: boolean;
 }
 
 export interface StreamResponse {
