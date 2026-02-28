@@ -32,14 +32,30 @@ export default function Search() {
     fetchOffline();
   }, []);
 
-  // Auto-search cuando hay ?q= en la URL
+  // Debounced search
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      doSearch(query);
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`, { replace: true });
+    }, 600); // 600ms debounce
+
+    return () => clearTimeout(timer);
+  }, [query, navigate]);
+
+  // Sync initial query from URL
   useEffect(() => {
     const q = searchParams.get('q') ?? '';
-    if (q) {
+    if (q && q !== query) {
       setQuery(q);
-      doSearch(q);
+      doSearch(q); // Also trigger search if URL changed externally
     }
-  }, [searchParams.get('q')]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // Only sync when URL actually changes
 
   const doSearch = async (q: string) => {
     if (!q.trim()) return;
@@ -47,24 +63,25 @@ export default function Search() {
     try {
       const searchResults = await api.search(q, 20);
       setResults(searchResults);
-    } catch (error) {
+    } catch {
       sileo.error({ 
         title: 'Error al buscar', 
         description: 'Verifica tu conexión e intenta de nuevo',
         fill: "#171717",
-        styles: { title: "text-white!", description: "text-white/75!" }
+        styles: { 
+          title: "!text-[#FFFFFF]", 
+          description: "!text-[#D1D5DB]"
+        }
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    // Actualizar la URL para bookmarking / compartir
-    navigate(`/search?q=${encodeURIComponent(query.trim())}`, { replace: true });
-    await doSearch(query);
+    doSearch(query);
   };
 
   const handlePlay = (result: SearchResult) => {
@@ -91,7 +108,10 @@ export default function Search() {
       title: 'Descargando...', 
       description: result.title,
       fill: "#171717",
-      styles: { title: "text-white!", description: "text-white/75!" }
+      styles: { 
+        title: "!text-[#FFFFFF]", 
+        description: "!text-[#D1D5DB]"
+      }
     });
     try {
       await api.downloadOffline({
@@ -105,14 +125,20 @@ export default function Search() {
         title: 'Descarga completada', 
         description: result.title,
         fill: "#171717",
-        styles: { title: "text-white!", description: "text-white/75!" }
+        styles: { 
+          title: "!text-[#FFFFFF]", 
+          description: "!text-[#D1D5DB]"
+        }
       });
     } catch {
       sileo.error({ 
         title: 'Error al descargar', 
         description: result.title,
         fill: "#171717",
-        styles: { title: "text-white!", description: "text-white/75!" }
+        styles: { 
+          title: "!text-[#FFFFFF]", 
+          description: "!text-[#D1D5DB]"
+        }
       });
     } finally {
       setDownloadingIds(prev => {
@@ -129,7 +155,10 @@ export default function Search() {
     sileo.success({ 
       title: 'Añadido a la playlist',
       fill: "#171717",
-      styles: { title: "text-white!", description: "text-white/75!" }
+      styles: { 
+        title: "!text-[#FFFFFF]", 
+        description: "!text-[#D1D5DB]"
+      }
     });
   };
 

@@ -27,17 +27,30 @@ export default function Player({ onShowQueue }: PlayerProps) {
   const progressPercentage = duration ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 px-4 py-3 md:py-4 z-30">
-      <div className="max-w-screen-2xl mx-auto">
-        <div className="flex items-center justify-between gap-4">
+    <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 z-30 pb-safe">
+      {/* Progress Bar (Mobile) - Absolute at top edge */}
+      <div className="md:hidden absolute top-0 left-0 right-0 h-1 bg-gray-800" onClick={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        seek((e.clientX - rect.left) / rect.width * duration);
+      }}>
+        <div 
+          className="h-full bg-purple-600 transition-all pointer-events-none" 
+          style={{ width: `${progressPercentage}%` }} 
+        />
+      </div>
+
+      <div className="max-w-screen-2xl mx-auto px-4 py-2 md:py-4">
+        <div className="flex items-center justify-between gap-2 md:gap-4">
+          
+          {/* Left: Thumbnail & Info */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <img
               src={currentSong.thumbnail}
               alt={currentSong.title}
-              className="w-12 h-12 md:w-14 md:h-14 rounded object-cover"
+              className="w-10 h-10 md:w-14 md:h-14 rounded object-cover shadow-md"
             />
             <div className="min-w-0 flex-1">
-              <h4 className="text-white font-medium truncate text-sm md:text-base">
+              <h4 className="text-white font-medium text-sm md:text-base truncate">
                 {currentSong.title}
               </h4>
               <p className="text-gray-400 text-xs md:text-sm truncate">
@@ -46,49 +59,51 @@ export default function Player({ onShowQueue }: PlayerProps) {
             </div>
           </div>
 
-          <div className="flex flex-col items-center flex-1 max-w-2xl">
-            <div className="flex items-center gap-2 md:gap-4 mb-2">
+          {/* Center: Controls (Desktop) | Right: Controls (Mobile) */}
+          <div className="flex flex-col items-end md:items-center justify-center flex-shrink-0 md:flex-1 md:max-w-2xl">
+            <div className="flex items-center gap-1 md:gap-4 md:mb-2">
               <button
                 onClick={playPrevious}
-                className="text-gray-400 hover:text-white transition p-2"
+                className="hidden md:block text-gray-400 hover:text-white transition p-2"
               >
                 <SkipBack size={20} />
               </button>
 
               <button
                 onClick={togglePlay}
-                className="bg-purple-600 hover:bg-purple-700 text-white rounded-full p-2 md:p-3 transition"
+                className="bg-transparent md:bg-purple-600 md:hover:bg-purple-700 text-white md:rounded-full p-2 md:p-3 transition-colors"
               >
-                {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                {isPlaying ? <Pause size={24} className="md:w-5 md:h-5" /> : <Play size={24} className="md:w-5 md:h-5 fill-current md:fill-none" />}
               </button>
 
               <button
                 onClick={playNext}
-                className="text-gray-400 hover:text-white transition p-2"
+                className="hidden md:block text-gray-400 hover:text-white transition p-2"
               >
                 <SkipForward size={20} />
               </button>
             </div>
 
-            <div className="w-full flex items-center gap-2 text-xs text-gray-400">
+            {/* Progress Bar (Desktop) */}
+            <div className="hidden md:flex w-full items-center gap-2 text-xs text-gray-400">
               <span>{formatTime(currentTime)}</span>
-              <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
+              <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden flex items-center group cursor-pointer"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  seek((e.clientX - rect.left) / rect.width * duration);
+                }}
+              >
                 <div
-                  className="h-full bg-purple-600 transition-all cursor-pointer"
+                  className="h-full bg-purple-600 transition-all rounded-r-full group-hover:bg-purple-500"
                   style={{ width: `${progressPercentage}%` }}
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const percentage = x / rect.width;
-                    seek(percentage * duration);
-                  }}
                 />
               </div>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-3">
+          {/* Right: Actions (Desktop) */}
+          <div className="hidden md:flex items-center gap-3 justify-end flex-1 min-w-0">
             <button
               onClick={onShowQueue}
               className="text-gray-400 hover:text-white transition p-2"
@@ -104,10 +119,11 @@ export default function Player({ onShowQueue }: PlayerProps) {
                 step="0.01"
                 value={volume}
                 onChange={(e) => setVolume(parseFloat(e.target.value))}
-                className="w-24 accent-purple-600"
+                className="w-24 accent-purple-600 cursor-pointer"
               />
             </div>
           </div>
+
         </div>
       </div>
     </div>

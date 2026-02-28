@@ -15,6 +15,7 @@ interface PlaylistContextType {
 const PlaylistContext = createContext<PlaylistContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'kordia_playlists';
+const OFFLINE_CACHE_KEY = 'kordia_offline_cache';
 
 function loadPlaylists(): Playlist[] {
   try {
@@ -30,13 +31,30 @@ function savePlaylists(playlists: Playlist[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
 }
 
+function loadOfflineSongsCache(): Song[] {
+  try {
+    const raw = localStorage.getItem(OFFLINE_CACHE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveOfflineSongsCache(songs: Song[]) {
+  localStorage.setItem(OFFLINE_CACHE_KEY, JSON.stringify(songs));
+}
+
 export function PlaylistProvider({ children }: { children: ReactNode }) {
   const [userPlaylists, setUserPlaylists] = useState<Playlist[]>(loadPlaylists);
-  const [offlineSongs, setOfflineSongs] = useState<Song[]>([]);
+  const [offlineSongs, setOfflineSongs] = useState<Song[]>(loadOfflineSongsCache);
 
   useEffect(() => {
     savePlaylists(userPlaylists);
   }, [userPlaylists]);
+
+  useEffect(() => {
+    saveOfflineSongsCache(offlineSongs);
+  }, [offlineSongs]);
 
   useEffect(() => {
     const fetchOffline = async () => {

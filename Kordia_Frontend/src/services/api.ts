@@ -33,6 +33,17 @@ export const api = {
       }),
     });
     if (!response.ok) throw new Error('Download failed');
+
+    // Force the Service Worker to cache the audio file on the frontend
+    try {
+      const audioUrl = api.getOfflineAudioUrl(song.ytid);
+      const cache = await caches.open('audio-cache');
+      
+      // We do a simple GET fetch to retrieve and cache the blob.
+      await cache.add(audioUrl);
+    } catch (err) {
+      console.error('Failed to cache audio in Service Worker:', err);
+    }
   },
 
   async getOfflineSongs(): Promise<OfflineSong[]> {

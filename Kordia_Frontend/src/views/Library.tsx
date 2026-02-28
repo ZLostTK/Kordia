@@ -38,7 +38,10 @@ export default function Library() {
       sileo.error({ 
         title: 'Error al cargar la biblioteca',
         fill: "#171717",
-        styles: { title: "text-white!", description: "text-white/75!" }
+        styles: { 
+          title: "!text-[#FFFFFF]", 
+          description: "!text-[#D1D5DB]"
+        }
       });
     } finally {
       setIsLoading(false);
@@ -76,13 +79,19 @@ export default function Library() {
       sileo.info({ 
         title: 'Canción eliminada de la biblioteca',
         fill: "#171717",
-        styles: { title: "text-white!", description: "text-white/75!" }
+        styles: { 
+          title: "!text-[#FFFFFF]", 
+          description: "!text-[#D1D5DB]"
+        }
       });
     } catch {
       sileo.error({ 
         title: 'Error al eliminar la canción',
         fill: "#171717",
-        styles: { title: "text-white!", description: "text-white/75!" }
+        styles: { 
+          title: "!text-[#FFFFFF]", 
+          description: "!text-[#D1D5DB]"
+        }
       });
     }
   };
@@ -93,7 +102,10 @@ export default function Library() {
     sileo.success({ 
       title: `Playlist "${newPlaylistName}" creada`,
       fill: "#171717",
-      styles: { title: "text-white!", description: "text-white/75!" }
+      styles: { 
+        title: "!text-[#FFFFFF]", 
+        description: "!text-[#D1D5DB]" 
+      }
     });
     setNewPlaylistName('');
     setShowCreateModal(false);
@@ -104,17 +116,22 @@ export default function Library() {
     sileo.info({ 
       title: `Playlist "${name}" eliminada`,
       fill: "#171717",
-      styles: { title: "text-white!", description: "text-white/75!" }
+      styles: { 
+        title: "!text-[#FFFFFF]", 
+        description: "!text-[#D1D5DB]" 
+      }
     });
   };
-
-  const handlePlayPlaylist = (playlist: any) => {
+  const handlePlayPlaylist = (playlist: { name: string; songs: Song[] }) => {
     if (playlist.songs.length === 0) return;
     playSong(playlist.songs[0], playlist.songs);
     sileo.info({ 
       title: `Reproduciendo "${playlist.name}"`,
       fill: "#171717",
-      styles: { title: "text-white!", description: "text-white/75!" }
+      styles: { 
+        title: "!text-[#FFFFFF]", 
+        description: "!text-[#D1D5DB]" 
+      }
     });
   };
   const handleImport = async () => {
@@ -137,7 +154,10 @@ export default function Library() {
       sileo.success({ 
         title: `Playlist "${pl.name}" importada con ${data.songs?.length ?? 0} canciones`,
         fill: "#171717",
-        styles: { title: "text-white!", description: "text-white/75!" }
+        styles: { 
+          title: "!text-[#FFFFFF]", 
+          description: "!text-[#D1D5DB]"
+        }
       });
       setImportUrl('');
       setShowImportModal(false);
@@ -146,7 +166,10 @@ export default function Library() {
         title: 'No se pudo importar la playlist', 
         description: 'Verifica la URL e intenta de nuevo',
         fill: "#171717",
-        styles: { title: "text-white!", description: "text-white/75!" }
+        styles: { 
+          title: "!text-[#FFFFFF]", 
+          description: "!text-[#D1D5DB]"
+        }
       });
     } finally {
       setIsImporting(false);

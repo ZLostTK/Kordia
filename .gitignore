@@ -228,5 +228,9 @@ cython_debug/
 Kordia_data/
 dist/
 
+# SSL Certificates
+cert.pem
+key.pem
+
 __pycache__
 *.pyc

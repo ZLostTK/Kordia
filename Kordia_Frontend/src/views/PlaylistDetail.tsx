@@ -42,7 +42,10 @@ export default function PlaylistDetail() {
     sileo.info({ 
       title: `Reproduciendo "${playlist.name}"`,
       fill: "#171717",
-      styles: { title: "text-white!", description: "text-white/75!" }
+      styles: { 
+        title: "!text-[#FFFFFF]", 
+        description: "!text-[#D1D5DB]" 
+      }
     });
   };
 
@@ -53,16 +56,42 @@ export default function PlaylistDetail() {
     sileo.info({ 
       title: 'Reproducción aleatoria activada',
       fill: "#171717",
-      styles: { title: "text-white!", description: "text-white/75!" }
+      styles: { 
+        title: "!text-[#FFFFFF]", 
+        description: "!text-[#D1D5DB]" 
+      }
     });
   };
 
-  const handleRemoveSong = (ytid: string, title: string) => {
+  const handleRemoveSong = async (ytid: string, title: string) => {
+    // Si es la playlist de descargadas, eliminar el archivo físico del servidor
+    if (playlist.id === 'downloaded') {
+      try {
+        await api.deleteOfflineSong(ytid);
+        sileo.success({ 
+          title: `Archivo eliminado`, 
+          description: `"${title}" se eliminó permanentemente`,
+          fill: "#171717",
+          styles: { title: "!text-[#FFFFFF]", description: "!text-[#D1D5DB]" }
+        });
+      } catch (error) {
+        console.error("Error deleting offline song:", error);
+        sileo.error({ 
+          title: 'Error al eliminar archivo', 
+          fill: "#171717", 
+          styles: { title: "!text-[#FFFFFF]", description: "!text-[#D1D5DB]" } 
+        });
+      }
+    }
+    
     removeSongFromPlaylist(playlist.id, ytid);
     sileo.info({ 
       title: `"${title}" eliminada de la playlist`,
       fill: "#171717",
-      styles: { title: "text-white!", description: "text-white/75!" }
+      styles: { 
+        title: "!text-[#FFFFFF]", 
+        description: "!text-[#D1D5DB]" 
+      }
     });
   };
 
@@ -71,7 +100,10 @@ export default function PlaylistDetail() {
     sileo.info({ 
       title: `Playlist "${playlist.name}" eliminada`,
       fill: "#171717",
-      styles: { title: "text-white!", description: "text-white/75!" }
+      styles: { 
+        title: "!text-[#FFFFFF]", 
+        description: "!text-[#D1D5DB]" 
+      }
     });
     navigate('/library');
   };
@@ -84,13 +116,13 @@ export default function PlaylistDetail() {
       sileo.success({ 
         title: `"${song.title}" descargada`,
         fill: "#171717",
-        styles: { title: "text-white!", description: "text-white/75!" }
+        styles: { title: "!text-[#FFFFFF]", description: "!text-[#D1D5DB]" }
       });
     } catch {
       sileo.error({ 
         title: `Error al descargar "${song.title}"`,
         fill: "#171717",
-        styles: { title: "text-white!", description: "text-white/75!" }
+        styles: { title: "!text-[#FFFFFF]", description: "!text-[#D1D5DB]" }
       });
     } finally {
       setDownloadingIds(prev => {
@@ -110,7 +142,10 @@ export default function PlaylistDetail() {
       title: 'Iniciando descarga de la playlist', 
       description: 'Las canciones se descargarán una por una',
       fill: "#171717",
-      styles: { title: "text-white!", description: "text-white/75!" }
+      styles: { 
+        title: "!text-[#FFFFFF]", 
+        description: "!text-[#D1D5DB]" 
+      }
     });
 
     await Promise.all(playlist.songs.map(async (song) => {
@@ -134,7 +169,10 @@ export default function PlaylistDetail() {
       title: 'Descarga completada', 
       description: `Se descargaron ${successCount} de ${playlist.songs.length} canciones`,
       fill: "#171717",
-      styles: { title: "text-white!", description: "text-white/75!" }
+      styles: { 
+        title: "!text-[#FFFFFF]", 
+        description: "!text-[#D1D5DB]" 
+      }
     });
   };
 

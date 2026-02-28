@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  kordia:
+    image: zlosttk/kordia-music-app:1.0.0
+    container_name: kordia
+    hostname: kordia
+
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Mexico_City
+      - CORS_ORIGINS=*
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - /DATA/AppData/kordia/data:/app/backend/Kordia_data
+
+    restart: unless-stopped
+
+    labels:
+      - "casaos.icon=https://raw.githubusercontent.com/ZLostTK/Kordia/main/Kordia_Frontend/public/pwa-192x192.png"
+      - "casaos.description=Kordia - Music app with offline support (PWA)"
+      - "casaos.category=Music"
+
+networks:
+  kordia:
+    name: kordia
+    driver: bridge
+
+x-casaos:
+  author: ZLostTK
+  category: Music
+  hostname: linuxlite.local
+  icon: https://raw.githubusercontent.com/ZLostTK/Kordia/main/Kordia_Frontend/public/pwa-192x192.png
+  index: /
+  is_uncontrolled: false
+  port_map: "8000"
+  scheme: http
+  store_app_id: kordia
+  title:
+    custom: "Kordia"
+    en_us: "Kordia"
+  description:
+    en_us: "Music app with offline support (PWA)"

@@ -58,10 +58,20 @@ def create_app() -> FastAPI:
         if assets_dir.exists():
             app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
         
-        # Catch-all: cualquier ruta que no sea de la API sirve index.html
-        # Esto permite que React Router maneje la navegación del lado del cliente
+        # Catch-all: sirve archivos reales desde static_dir o index.html si no existen
+        # Esto permite servir manifest.webmanifest, registerSW.js y manejar React Router
         @app.get("/{full_path:path}", include_in_schema=False)
-        async def serve_spa(_full_path: str = ""):
+        async def serve_spa(full_path: str = ""):
+            # Si se pide una ruta de la API, dejamos que pase (esto no debería ocurrir por el orden de registro)
+            if full_path.startswith("api/"):
+                return None
+                
+            # Intentar servir el archivo real desde la raíz de dist (ej: manifest.webmanifest, registerSW.js)
+            file_path = static_dir / full_path
+            if file_path.exists() and file_path.is_file():
+                return FileResponse(str(file_path))
+                
+            # Por defecto, servir index.html para que React Router maneje la navegación
             index_file = static_dir / "index.html"
             return FileResponse(str(index_file))
         

@@ -9,7 +9,17 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <App />
-      <Toaster position="top-center" />
+      <Toaster 
+        position="top-center" 
+        options={{
+          fill: "#171717",
+          roundness: 12,
+          styles: {
+            title: "!text-[#FFFFFF]",
+            description: "!text-[#D1D5DB]"
+          }
+        }}
+      />
     </BrowserRouter>
   </StrictMode>
 );
