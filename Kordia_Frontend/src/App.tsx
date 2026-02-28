@@ -1,66 +1,59 @@
 import { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { PlayerProvider } from './contexts/PlayerContext';
+import { PlaylistProvider } from './contexts/PlaylistContext';
 import Sidebar from './components/Sidebar';
-import Player from './components/Player';
 import MobileNav from './components/MobileNav';
+import Player from './components/Player';
 import Queue from './components/Queue';
 import Header from './components/Header';
 import Home from './views/Home';
 import Search from './views/Search';
 import Library from './views/Library';
 import Settings from './views/Settings';
+import PlaylistDetail from './views/PlaylistDetail';
 
 function App() {
-  const [currentView, setCurrentView] = useState('home');
   const [showQueue, setShowQueue] = useState(false);
-
-  const renderView = () => {
-    switch (currentView) {
-      case 'home':
-        return <Home />;
-      case 'search':
-        return <Search />;
-      case 'library':
-        return <Library />;
-      case 'settings':
-        return <Settings />;
-      default:
-        return <Home />;
-    }
-  };
-
-  const getViewTitle = () => {
-    switch (currentView) {
-      case 'home':
-        return 'Kordia';
-      case 'search':
-        return 'Buscar';
-      case 'library':
-        return 'Biblioteca';
-      case 'settings':
-        return 'Ajustes';
-      default:
-        return 'Kordia';
-    }
-  };
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <PlayerProvider>
-      <div className="min-h-screen bg-gray-950 flex">
-        <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+      <PlaylistProvider>
+        <div className="min-h-screen bg-gray-950 flex">
+          {/* Overlay oscuro en móvil cuando el sidebar está abierto */}
+          {sidebarOpen && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-60 z-20 md:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
 
-        <main className="flex-1 flex flex-col">
-          <Header title={getViewTitle()} />
+          <Sidebar
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
 
-          <div className="flex-1 overflow-y-auto">
-            {renderView()}
-          </div>
-        </main>
+          <main className="flex-1 flex flex-col min-w-0">
+            <Header onMenuClick={() => setSidebarOpen(true)} />
 
-        <Player onShowQueue={() => setShowQueue(true)} />
-        <MobileNav currentView={currentView} onViewChange={setCurrentView} />
-        <Queue isOpen={showQueue} onClose={() => setShowQueue(false)} />
-      </div>
+            <div className="flex-1 overflow-y-auto pb-28">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/search" element={<Search />} />
+                <Route path="/library" element={<Library />} />
+                <Route path="/library/playlist/:playlistId" element={<PlaylistDetail />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="*" element={<Home />} />
+              </Routes>
+            </div>
+          </main>
+
+          <Player onShowQueue={() => setShowQueue(true)} />
+          <MobileNav />
+          <Queue isOpen={showQueue} onClose={() => setShowQueue(false)} />
+        </div>
+      </PlaylistProvider>
     </PlayerProvider>
   );
 }

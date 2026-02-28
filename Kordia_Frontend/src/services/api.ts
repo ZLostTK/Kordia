@@ -38,7 +38,8 @@ export const api = {
   async getOfflineSongs(): Promise<OfflineSong[]> {
     const response = await fetch(`${API_BASE_URL}/offline`);
     if (!response.ok) throw new Error('Failed to get offline songs');
-    return response.json();
+    const data = await response.json();
+    return data.songs;
   },
 
   async deleteOfflineSong(ytid: string): Promise<void> {
@@ -50,6 +51,15 @@ export const api = {
 
   getOfflineAudioUrl(ytid: string): string {
     return `${API_BASE_URL}/offline/audio/${ytid}`;
+  },
+
+  async importPlaylist(importUrl: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/playlist/import?url=${encodeURIComponent(importUrl.trim())}`);
+    if (!response.ok) throw new Error('Failed to import playlist');
+    // The response from this endpoint would typically contain the imported playlist data.
+    // The original snippet included client-side logic (createPlaylist, addSongToPlaylist, sileo.success, etc.)
+    // which is outside the scope of this API service file.
+    // This method should only handle the API call.
   },
 
   async cleanup(): Promise<void> {

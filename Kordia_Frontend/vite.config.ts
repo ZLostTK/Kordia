@@ -13,6 +13,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    host: true,
     // En desarrollo, las llamadas a /api/* se redirigen al backend
     proxy: {
       '/search': 'http://localhost:8000',

@@ -132,6 +132,6 @@ class OfflineSongsRepository(BaseRepository):
             'thumbnail': thumbnail,
             'audioPath': row[4],
             'artworkPath': row[5],
-            'dateAdded': row[6],
+            'downloaded_at': row[6],
             'isOffline': True
         }

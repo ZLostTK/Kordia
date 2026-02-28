@@ -1,46 +1,101 @@
-import { Play, Download } from 'lucide-react';
-import { Song } from '../types';
+import { Play, Download, Loader2, Plus } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Song, Playlist } from '../types';
 
 interface SongCardProps {
   song: Song;
   onPlay: (song: Song) => void;
   onDownload?: (song: Song) => void;
+  isDownloading?: boolean;
   showDownload?: boolean;
+  playlists?: Playlist[];
+  onAddToPlaylist?: (playlist: Playlist) => void;
 }
 
-export default function SongCard({ song, onPlay, onDownload, showDownload = true }: SongCardProps) {
+export default function SongCard({
+  song,
+  onPlay,
+  onDownload,
+  isDownloading = false,
+  showDownload = true,
+  playlists = [],
+  onAddToPlaylist,
+}: SongCardProps) {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div className="group relative bg-gray-800 rounded-lg p-4 hover:bg-gray-750 transition cursor-pointer">
-      <div className="relative aspect-square mb-3">
+    <div
+      className="group relative bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition cursor-pointer"
+      onClick={() => onPlay(song)}
+    >
+      {/* Thumbnail */}
+      <div className="relative aspect-square mb-3 rounded overflow-hidden bg-gray-700">
         <img
-          src={song.thumbnail}
+          src={song.thumbnail || `https://i.ytimg.com/vi/${song.ytid}/mqdefault.jpg`}
           alt={song.title}
-          className="w-full h-full object-cover rounded"
+          className="w-full h-full object-cover"
+          onError={e => { (e.target as HTMLImageElement).src = `https://i.ytimg.com/vi/${song.ytid}/mqdefault.jpg`; }}
         />
+        {/* Play button overlay */}
         <button
-          onClick={() => onPlay(song)}
-          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-50 transition opacity-0 group-hover:opacity-100"
+          onClick={e => { e.stopPropagation(); onPlay(song); }}
+          className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition opacity-0 group-hover:opacity-100"
         >
-          <div className="bg-purple-600 rounded-full p-3 transform scale-90 group-hover:scale-100 transition">
-            <Play size={24} className="text-white fill-white" />
+          <div className="bg-purple-600 rounded-full p-3 scale-90 group-hover:scale-100 transition">
+            <Play size={22} className="text-white fill-white" />
           </div>
         </button>
       </div>
 
-      <h3 className="text-white font-medium truncate mb-1">{song.title}</h3>
-      <p className="text-gray-400 text-sm truncate">{song.artist}</p>
+      <h3 className="text-white font-medium truncate text-sm mb-0.5">{song.title}</h3>
+      <p className="text-gray-400 text-xs truncate">{song.artist}</p>
 
-      {showDownload && onDownload && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDownload(song);
-          }}
-          className="absolute top-2 right-2 bg-gray-900 bg-opacity-80 p-2 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-purple-600"
-        >
-          <Download size={16} className="text-white" />
-        </button>
-      )}
+      {/* Action buttons */}
+      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+        {/* Add to playlist */}
+        {onAddToPlaylist && playlists.length > 0 && (
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
+              className="bg-gray-900/80 hover:bg-purple-600 p-1.5 rounded-full transition"
+              title="Añadir a playlist"
+            >
+              <Plus size={14} className="text-white" />
+            </button>
+            {showMenu && (
+              <div
+                className="absolute right-0 top-8 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-20 min-w-40 overflow-hidden"
+                onClick={e => e.stopPropagation()}
+              >
+                {playlists.map(pl => (
+                  <button
+                    key={pl.id}
+                    onClick={() => { onAddToPlaylist(pl); setShowMenu(false); }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition truncate"
+                  >
+                    {pl.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Download */}
+        {showDownload && onDownload && (
+          <button
+            onClick={e => { e.stopPropagation(); onDownload(song); }}
+            disabled={isDownloading}
+            className="bg-gray-900/80 hover:bg-purple-600 disabled:opacity-60 p-1.5 rounded-full transition"
+            title="Descargar"
+          >
+            {isDownloading
+              ? <Loader2 size={14} className="text-white animate-spin" />
+              : <Download size={14} className="text-white" />}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

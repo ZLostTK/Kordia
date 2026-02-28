@@ -50,11 +50,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const playSong = async (song: Song, newQueue?: Song[]) => {
     try {
-      const streamData = await api.getStreamUrl(song.ytid);
       const audio = audioRef.current;
+      let url = song.url;
 
-      audio.src = streamData.url;
-      setCurrentSong({ ...song, url: streamData.url });
+      // Solo llamar a la API si no tenemos URL local (canciones offline ya tienen url)
+      if (!url) {
+        const streamData = await api.getStreamUrl(song.ytid);
+        url = streamData.url;
+      }
+
+      audio.src = url;
+      setCurrentSong({ ...song, url });
 
       if (newQueue) {
         setQueue(newQueue);

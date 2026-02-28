@@ -161,3 +161,56 @@ class YouTubeService:
                 'thumbnail': info.get('thumbnail'),
                 'duration': info.get('duration'),
             }
+
+    async def get_playlist(self, url: str) -> Dict[str, Any]:
+        """
+        Obtener canciones de una playlist de YouTube
+        
+        Args:
+            url: URL o ID de la playlist
+            
+        Returns:
+            Diccionario con title y lista de songs
+        """
+        import re
+        # Extraer ID de la URL si es necesario
+        playlist_id = url
+        if 'list=' in url:
+            match = re.search(r'list=([a-zA-Z0-9_-]+)', url)
+            if match:
+                playlist_id = match.group(1)
+        
+        # Asegurar que yt-dlp reciba una URL válida de playlist
+        if not playlist_id.startswith('http'):
+            final_url = f"https://www.youtube.com/playlist?list={playlist_id}"
+        else:
+            final_url = playlist_id
+
+        ydl_opts = {
+            **self.base_opts,
+            'extract_flat': True,
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(final_url, download=False)
+            
+            songs = []
+            if info and 'entries' in info:
+                for entry in info['entries']:
+                    if not entry:
+                        continue
+                    thumbnail = entry.get('thumbnail')
+                    if not thumbnail and entry.get('thumbnails'):
+                        thumbnail = entry['thumbnails'][-1].get('url')
+                    songs.append({
+                        'ytid': entry.get('id'),
+                        'title': entry.get('title'),
+                        'artist': entry.get('uploader') or entry.get('channel'),
+                        'thumbnail': thumbnail,
+                        'duration': entry.get('duration'),
+                    })
+            
+            return {
+                'title': info.get('title', 'Playlist importada') if info else 'Playlist importada',
+                'songs': songs,
+            }

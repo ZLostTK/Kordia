@@ -19,8 +19,18 @@ export interface OfflineSong {
   ytid: string;
   title: string;
   artist: string;
+  thumbnail: string;
   downloaded_at: string;
-  file_size: number;
+  audioPath: string;
+  artworkPath: string;
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  songs: Song[];
+  createdAt: string;
+  coverThumbnail?: string;
 }
 
 export interface StreamResponse {
