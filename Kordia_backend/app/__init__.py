@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from app.config import settings
 from app.database.connection import init_database
 from app.core.middleware import LoggingMiddleware
-from app.api.routes import search, stream, offline, maintenance
+from app.api.routes import search, stream, offline, maintenance, playlists
 import logging
 
 # Configurar logging
@@ -49,6 +49,7 @@ def create_app() -> FastAPI:
     app.include_router(search.router)
     app.include_router(stream.router)
     app.include_router(offline.router)
+    app.include_router(playlists.router)
     
     # Servir el frontend React (build dist) si existe
     static_dir = settings.static_dir

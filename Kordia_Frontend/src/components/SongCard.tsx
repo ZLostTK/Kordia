@@ -1,6 +1,7 @@
-import { Play, Download, Loader2, Plus, Check } from 'lucide-react';
+import { Play, Loader2, Plus, Check, Smartphone, Server } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { Song, Playlist } from '../types';
+import { isMobileDevice } from '../utils/device';
 
 interface SongCardProps {
   song: Song;
@@ -25,6 +26,9 @@ export default function SongCard({
 }: SongCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  
+  const isMobile = isMobileDevice();
+  const filterPlaylists = playlists.filter(pl => pl.id !== 'downloaded');
 
   return (
     <div
@@ -56,7 +60,7 @@ export default function SongCard({
       {/* Action buttons */}
       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
         {/* Add to playlist */}
-        {onAddToPlaylist && playlists.length > 0 && (
+        {onAddToPlaylist && filterPlaylists.length > 0 && (
           <div className="relative" ref={menuRef}>
             <button
               onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
@@ -70,7 +74,7 @@ export default function SongCard({
                 className="absolute right-0 top-8 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-20 min-w-40 overflow-hidden"
                 onClick={e => e.stopPropagation()}
               >
-                {playlists.map(pl => (
+                {filterPlaylists.map(pl => (
                   <button
                     key={pl.id}
                     onClick={() => { onAddToPlaylist(pl); setShowMenu(false); }}
@@ -90,13 +94,13 @@ export default function SongCard({
             onClick={e => { e.stopPropagation(); onDownload(song); }}
             disabled={isDownloading || isDownloaded}
             className={`bg-gray-900/80 hover:bg-purple-600 disabled:opacity-60 p-1.5 rounded-full transition ${isDownloaded ? 'text-green-500' : 'text-white'}`}
-            title={isDownloaded ? "Descargado" : "Descargar"}
+            title={isDownloaded ? "Descargado" : (isMobile ? "Caché Local" : "Descargar al Host")}
           >
             {isDownloading
               ? <Loader2 size={14} className="text-white animate-spin" />
               : isDownloaded 
                 ? <Check size={14} />
-                : <Download size={14} />}
+                : isMobile ? <Smartphone size={14} /> : <Server size={14} />}
           </button>
         )}
       </div>

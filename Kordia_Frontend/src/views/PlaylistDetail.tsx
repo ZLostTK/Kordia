@@ -84,7 +84,7 @@ export default function PlaylistDetail() {
       }
     }
     
-    removeSongFromPlaylist(playlist.id, ytid);
+    await removeSongFromPlaylist(playlist.id, ytid);
     sileo.info({ 
       title: `"${title}" eliminada de la playlist`,
       fill: "#171717",
@@ -95,8 +95,8 @@ export default function PlaylistDetail() {
     });
   };
 
-  const handleDeletePlaylist = () => {
-    deletePlaylist(playlist.id);
+  const handleDeletePlaylist = async () => {
+    await deletePlaylist(playlist.id);
     sileo.info({ 
       title: `Playlist "${playlist.name}" eliminada`,
       fill: "#171717",
@@ -216,14 +216,16 @@ export default function PlaylistDetail() {
             >
               <Shuffle size={18} />
             </button>
-            <button
-              onClick={handleDownloadAll}
-              disabled={isDownloadingAll || playlist.songs.length === 0}
-              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-full transition"
-              title="Descargar todas"
-            >
-              {isDownloadingAll ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-            </button>
+            {playlist.id !== 'downloaded' && (
+              <button
+                onClick={handleDownloadAll}
+                disabled={isDownloadingAll || playlist.songs.length === 0}
+                className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-full transition"
+                title="Descargar todas"
+              >
+                {isDownloadingAll ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+              </button>
+            )}
             <button
               onClick={handleDeletePlaylist}
               className="flex items-center gap-2 bg-gray-800 hover:bg-red-600 text-gray-400 hover:text-white px-4 py-2.5 rounded-full transition"
@@ -264,14 +266,16 @@ export default function PlaylistDetail() {
                 <p className="text-gray-400 text-sm truncate">{song.artist}</p>
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                <button
-                  onClick={e => { e.stopPropagation(); handleDownloadSong(song); }}
-                  disabled={downloadingIds.has(song.ytid)}
-                  className="text-gray-400 hover:text-purple-400 transition p-2 disabled:opacity-50"
-                  title="Descargar"
-                >
-                  {downloadingIds.has(song.ytid) ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                </button>
+                {playlist.id !== 'downloaded' && (
+                  <button
+                    onClick={e => { e.stopPropagation(); handleDownloadSong(song); }}
+                    disabled={downloadingIds.has(song.ytid)}
+                    className="text-gray-400 hover:text-purple-400 transition p-2 disabled:opacity-50"
+                    title="Descargar"
+                  >
+                    {downloadingIds.has(song.ytid) ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                  </button>
+                )}
                 <button
                   onClick={e => { e.stopPropagation(); handleRemoveSong(song.ytid, song.title); }}
                   className="text-gray-500 hover:text-red-400 transition p-2"

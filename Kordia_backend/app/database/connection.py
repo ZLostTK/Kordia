@@ -6,6 +6,8 @@ from app.config import settings
 from app.database.models import (
     STREAM_CACHE_SCHEMA,
     OFFLINE_SONGS_SCHEMA,
+    PLAYLIST_SCHEMA,
+    PLAYLIST_SONG_SCHEMA,
     CREATE_INDEXES
 )
 
@@ -16,6 +18,8 @@ async def init_database() -> None:
         # Crear tablas
         await db.execute(STREAM_CACHE_SCHEMA)
         await db.execute(OFFLINE_SONGS_SCHEMA)
+        await db.execute(PLAYLIST_SCHEMA)
+        await db.execute(PLAYLIST_SONG_SCHEMA)
         
         # Crear índices
         for index_sql in CREATE_INDEXES:

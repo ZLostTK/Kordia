@@ -96,9 +96,9 @@ export default function Library() {
     }
   };
 
-  const handleCreatePlaylist = () => {
+  const handleCreatePlaylist = async () => {
     if (!newPlaylistName.trim()) return;
-    createPlaylist(newPlaylistName.trim());
+    await createPlaylist(newPlaylistName.trim());
     sileo.success({ 
       title: `Playlist "${newPlaylistName}" creada`,
       fill: "#171717",
@@ -111,8 +111,8 @@ export default function Library() {
     setShowCreateModal(false);
   };
 
-  const handleDeletePlaylist = (id: string, name: string) => {
-    deletePlaylist(id);
+  const handleDeletePlaylist = async (id: string, name: string) => {
+    await deletePlaylist(id);
     sileo.info({ 
       title: `Playlist "${name}" eliminada`,
       fill: "#171717",
@@ -138,17 +138,14 @@ export default function Library() {
     if (!importUrl.trim()) return;
     setIsImporting(true);
     try {
-      const response = await fetch(`/playlist/import?url=${encodeURIComponent(importUrl.trim())}`);
-      if (!response.ok) throw new Error();
-      const data = await response.json();
+      const data = await api.importPlaylist(importUrl);
       
-      const pl = createPlaylist(data.title || 'Playlist importada', false);
+      const pl = await createPlaylist(data.title || 'Playlist importada', true);
       
-      // Añadir las canciones importadas a la nueva playlist de manera asíncrona (aunque addSong es síncrono en state)
       if (data.songs && data.songs.length > 0) {
-        data.songs.forEach((song: Song) => {
-          addSongToPlaylist(pl.id, song);
-        });
+        for (const song of data.songs) {
+          await addSongToPlaylist(pl.id, song);
+        }
       }
       
       sileo.success({ 

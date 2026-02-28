@@ -1,4 +1,5 @@
-import { SearchResult, OfflineSong, StreamResponse, Song } from '../types';
+import { SearchResult, OfflineSong, StreamResponse, Song, Playlist } from '../types';
+import { isMobileDevice } from '../utils/device';
 
 // En producción usamos rutas relativas (mismo origen que el backend).
 // En desarrollo, Vite proxy redirige al backend en localhost:8000.
@@ -22,6 +23,39 @@ export const api = {
   },
 
   async downloadOffline(song: Song): Promise<void> {
+    const isMobile = isMobileDevice();
+
+    if (isMobile) {
+      // Lógica Móvil: Descargar directamente el stream proxy a caché y registrar localmente.
+      try {
+        const proxyResponse = await fetch(`${API_BASE_URL}/stream/proxy/${song.ytid}`);
+        if (!proxyResponse.ok) throw new Error('Proxy download failed');
+        
+        const audioUrl = api.getOfflineAudioUrl(song.ytid);
+        const audioCache = await caches.open('audio-cache');
+        await audioCache.put(audioUrl, proxyResponse);
+
+        if (song.thumbnail) {
+          const thumbCache = await caches.open('yt-thumbnails');
+          await thumbCache.add(song.thumbnail);
+        }
+
+        const localStr = localStorage.getItem('mobile_offline_songs');
+        const localSongs: Song[] = localStr ? JSON.parse(localStr) : [];
+        if (!localSongs.some(s => s.ytid === song.ytid)) {
+          // Add `url` explicitly exactly as offline view expects
+          const s = { ...song, url: audioUrl };
+          localSongs.unshift(s);
+          localStorage.setItem('mobile_offline_songs', JSON.stringify(localSongs));
+        }
+      } catch (err) {
+        console.error('Failed to cache resources on mobile:', err);
+        throw err;
+      }
+      return;
+    }
+
+    // Lógica PC: Hostear en disco a través del endpoint habitual
     const response = await fetch(`${API_BASE_URL}/offline/download/${song.ytid}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -33,21 +67,6 @@ export const api = {
       }),
     });
     if (!response.ok) throw new Error('Download failed');
-
-    // Force the Service Worker to cache the audio file and thumbnail on the frontend
-    try {
-      const audioUrl = api.getOfflineAudioUrl(song.ytid);
-      const audioCache = await caches.open('audio-cache');
-      await audioCache.add(audioUrl);
-
-      // Also cache the thumbnail if it exists
-      if (song.thumbnail) {
-        const thumbCache = await caches.open('yt-thumbnails');
-        await thumbCache.add(song.thumbnail);
-      }
-    } catch (err) {
-      console.error('Failed to cache resources in Service Worker:', err);
-    }
   },
 
   async getOfflineSongs(): Promise<OfflineSong[]> {
@@ -58,6 +77,23 @@ export const api = {
   },
 
   async deleteOfflineSong(ytid: string): Promise<void> {
+    const isMobile = isMobileDevice();
+    if (isMobile) {
+      const localStr = localStorage.getItem('mobile_offline_songs');
+      const localSongs: Song[] = localStr ? JSON.parse(localStr) : [];
+      const filtered = localSongs.filter(s => s.ytid !== ytid);
+      localStorage.setItem('mobile_offline_songs', JSON.stringify(filtered));
+      
+      const audioUrl = api.getOfflineAudioUrl(ytid);
+      try {
+        const cache = await caches.open('audio-cache');
+        await cache.delete(audioUrl);
+      } catch (err) {
+        console.error('Failed to delete cache on mobile:', err);
+      }
+      return;
+    }
+
     const response = await fetch(`${API_BASE_URL}/offline/${ytid}`, {
       method: 'DELETE',
     });
@@ -68,13 +104,57 @@ export const api = {
     return `${API_BASE_URL}/offline/audio/${ytid}`;
   },
 
-  async importPlaylist(importUrl: string): Promise<void> {
+  async importPlaylist(importUrl: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/playlist/import?url=${encodeURIComponent(importUrl.trim())}`);
     if (!response.ok) throw new Error('Failed to import playlist');
-    // The response from this endpoint would typically contain the imported playlist data.
-    // The original snippet included client-side logic (createPlaylist, addSongToPlaylist, sileo.success, etc.)
-    // which is outside the scope of this API service file.
-    // This method should only handle the API call.
+    return response.json();
+  },
+
+  // Playlists (SQLite Host API)
+  async getPlaylists(): Promise<Playlist[]> {
+    const response = await fetch(`${API_BASE_URL}/playlists/`);
+    if (!response.ok) throw new Error('Failed to fetch playlists');
+    return response.json();
+  },
+  
+  async createPlaylist(playlist: Partial<Playlist>): Promise<Playlist> {
+    const response = await fetch(`${API_BASE_URL}/playlists/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(playlist),
+    });
+    if (!response.ok) throw new Error('Failed to create playlist');
+    return response.json();
+  },
+  
+  async deletePlaylist(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/playlists/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to delete playlist');
+  },
+  
+  async addSongToPlaylist(playlistId: string, song: Song): Promise<Playlist> {
+    const response = await fetch(`${API_BASE_URL}/playlists/${playlistId}/songs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(song),
+    });
+    if (!response.ok) throw new Error('Failed to add song to playlist');
+    return response.json();
+  },
+  
+  async removeSongFromPlaylist(playlistId: string, ytid: string): Promise<Playlist> {
+    const response = await fetch(`${API_BASE_URL}/playlists/${playlistId}/songs/${ytid}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to remove song from playlist');
+    return response.json();
+  },
+  
+  async renamePlaylist(playlistId: string, name: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/playlists/${playlistId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) throw new Error('Failed to rename playlist');
   },
 
   async cleanup(): Promise<void> {

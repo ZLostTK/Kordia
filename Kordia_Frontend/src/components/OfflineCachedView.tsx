@@ -3,23 +3,40 @@ import { usePlayer } from '../contexts/PlayerContext';
 import { usePlaylists } from '../contexts/PlaylistContext';
 import { Song } from '../types';
 import { api } from '../services/api';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function OfflineCachedView() {
   const { playSong, currentSong } = usePlayer();
-  const { downloadedPlaylist } = usePlaylists();
   
+  const [offlineSongs, setOfflineSongs] = useState<Song[]>([]);
   const [songStatus, setSongStatus] = useState<Record<string, boolean>>({});
 
-  const originalOfflineSongs = useMemo(() => downloadedPlaylist?.songs || [], [downloadedPlaylist]);
-
   useEffect(() => {
-    const checkCacheStatus = async () => {
+    const fetchAllAndCheckCache = async () => {
+      // 1. Obtener canciones de localStorage (mobile)
+      const localStr = localStorage.getItem('mobile_offline_songs');
+      const localSongs: Song[] = localStr ? JSON.parse(localStr) : [];
+
+      // 2. Obtener canciones del host (PC)
+      let hostSongs: Song[] = [];
+      try {
+        hostSongs = await api.getOfflineSongs();
+      } catch (err) {
+        console.error('No se pudo obtener las canciones del servidor host', err);
+      }
+
+      // 3. Mergear de forma única
+      const mergedMap = new Map<string, Song>();
+      hostSongs.forEach(s => mergedMap.set(s.ytid, { ...s, url: api.getOfflineAudioUrl(s.ytid) }));
+      localSongs.forEach(s => mergedMap.set(s.ytid, { ...s, url: api.getOfflineAudioUrl(s.ytid) }));
+      
+      const merged = Array.from(mergedMap.values());
+
       try {
         const audioCache = await caches.open('audio-cache');
         const status: Record<string, boolean> = {};
 
-        for (const song of originalOfflineSongs) {
+        for (const song of merged) {
           const expectedUrl = api.getOfflineAudioUrl(song.ytid);
           const response = await audioCache.match(expectedUrl);
           status[song.ytid] = !!response;
@@ -29,12 +46,12 @@ export default function OfflineCachedView() {
       } catch (err) {
         console.error('No se pudo verificar el caché', err);
       }
+
+      setOfflineSongs(merged);
     };
 
-    if (originalOfflineSongs.length > 0) {
-      checkCacheStatus();
-    }
-  }, [originalOfflineSongs]);
+    fetchAllAndCheckCache();
+  }, []);
 
   const handlePlay = (song: Song) => {
     const songData: Song = {
@@ -42,15 +59,15 @@ export default function OfflineCachedView() {
       url: song.url || api.getOfflineAudioUrl(song.ytid),
     };
     
-    playSong(songData, originalOfflineSongs.map(s => ({
+    playSong(songData, offlineSongs.map(s => ({
       ...s,
       url: s.url || api.getOfflineAudioUrl(s.ytid),
     })));
   };
 
   const handlePlayAll = () => {
-    if (originalOfflineSongs.length > 0) {
-      handlePlay(originalOfflineSongs[0]);
+    if (offlineSongs.length > 0) {
+      handlePlay(offlineSongs[0]);
     }
   };
 
@@ -61,9 +78,9 @@ export default function OfflineCachedView() {
         {/* Header */}
         <div className="bg-gradient-to-b from-purple-900/40 to-gray-900 p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
           <div className="w-32 h-32 flex-shrink-0 bg-gray-800 rounded-xl shadow-lg border border-gray-700 flex items-center justify-center overflow-hidden text-purple-500">
-            {originalOfflineSongs[0]?.thumbnail ? (
+            {offlineSongs[0]?.thumbnail ? (
               <img 
-                src={originalOfflineSongs[0].thumbnail} 
+                src={offlineSongs[0].thumbnail} 
                 alt="Cover" 
                 className="w-full h-full object-cover" 
               />
@@ -78,7 +95,7 @@ export default function OfflineCachedView() {
             </p>
             <button 
               onClick={handlePlayAll}
-              disabled={originalOfflineSongs.length === 0}
+              disabled={offlineSongs.length === 0}
               className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-semibold py-3 px-8 rounded-full transition-all shadow-lg hover:shadow-purple-600/25 active:scale-95"
             >
               <Play size={20} className="fill-current" /> Reproducir todo
@@ -90,7 +107,7 @@ export default function OfflineCachedView() {
         <div className="p-4 sm:p-6 bg-gray-900">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold flex items-center gap-2">
-              <Music size={20} className="text-purple-500" /> Todas las descargadas ({originalOfflineSongs.length})
+              <Music size={20} className="text-purple-500" /> Todas las descargadas ({offlineSongs.length})
             </h2>
             <div className="flex gap-3 text-xs">
               <span className="flex items-center gap-1 text-green-400">
@@ -102,7 +119,7 @@ export default function OfflineCachedView() {
             </div>
           </div>
           
-          {originalOfflineSongs.length === 0 ? (
+          {offlineSongs.length === 0 ? (
             <div className="text-center py-12 text-gray-500 bg-gray-950/50 rounded-xl border border-gray-800/50">
               <Download size={40} className="mx-auto mb-3 opacity-20" />
               <p className="text-lg">No hay canciones descargadas</p>
@@ -110,7 +127,7 @@ export default function OfflineCachedView() {
             </div>
           ) : (
             <div className="space-y-2">
-              {originalOfflineSongs.map((song, index) => {
+              {offlineSongs.map((song, index) => {
                 const isActive = currentSong?.ytid === song.ytid;
                 const isLocal = songStatus[song.ytid];
                 return (

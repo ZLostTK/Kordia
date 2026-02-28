@@ -1,14 +1,15 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Playlist, Song } from '../types';
 import { api } from '../services/api';
+import { isMobileDevice } from '../utils/device';
 
 interface PlaylistContextType {
   playlists: Playlist[];
-  createPlaylist: (name: string, persistent?: boolean) => Playlist;
-  deletePlaylist: (id: string) => void;
-  renamePlaylist: (id: string, name: string) => void;
-  addSongToPlaylist: (playlistId: string, song: Song) => void;
-  removeSongFromPlaylist: (playlistId: string, ytid: string) => void;
+  createPlaylist: (name: string, persistent?: boolean) => Promise<Playlist>;
+  deletePlaylist: (id: string) => Promise<void>;
+  renamePlaylist: (id: string, name: string) => Promise<void>;
+  addSongToPlaylist: (playlistId: string, song: Song) => Promise<void>;
+  removeSongFromPlaylist: (playlistId: string, ytid: string) => Promise<void>;
   getPlaylist: (id: string) => Playlist | undefined;
   downloadedPlaylist: Playlist;
 }
@@ -46,12 +47,25 @@ function saveOfflineSongsCache(songs: Song[]) {
 }
 
 export function PlaylistProvider({ children }: { children: ReactNode }) {
-  const [userPlaylists, setUserPlaylists] = useState<Playlist[]>(loadPlaylists);
+  const [userPlaylists, setUserPlaylists] = useState<Playlist[]>([]);
   const [offlineSongs, setOfflineSongs] = useState<Song[]>(loadOfflineSongsCache);
+  const isMobile = isMobileDevice();
 
   useEffect(() => {
-    savePlaylists(userPlaylists);
-  }, [userPlaylists]);
+    if (isMobile) {
+      setUserPlaylists(loadPlaylists());
+    } else {
+      api.getPlaylists().then(setUserPlaylists).catch(e => {
+        console.error("No se pudieron cargar las playlists del host", e);
+      });
+    }
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (isMobile) {
+      savePlaylists(userPlaylists);
+    }
+  }, [userPlaylists, isMobile]);
 
   useEffect(() => {
     saveOfflineSongsCache(offlineSongs);
@@ -59,6 +73,13 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const fetchOffline = async () => {
+      if (isMobileDevice()) {
+        const localStr = localStorage.getItem('mobile_offline_songs');
+        const localSongs = localStr ? JSON.parse(localStr) : [];
+        setOfflineSongs(localSongs);
+        return;
+      }
+
       try {
         const response = await fetch('/offline');
         if (response.ok) {
@@ -89,7 +110,7 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
 
   const playlists = [downloadedPlaylist, ...userPlaylists];
 
-  const createPlaylist = (name: string, persistent: boolean = true): Playlist => {
+  const createPlaylist = async (name: string, persistent: boolean = true): Promise<Playlist> => {
     const newPlaylist: Playlist = {
       id: `pl_${Date.now()}`,
       name,
@@ -97,40 +118,87 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
       persistent,
     };
-    setUserPlaylists(prev => [...prev, newPlaylist]);
-    return newPlaylist;
+    if (isMobile) {
+      setUserPlaylists(prev => [...prev, newPlaylist]);
+      return newPlaylist;
+    } else {
+      try {
+        const created = await api.createPlaylist(newPlaylist);
+        setUserPlaylists(prev => [created, ...prev]);
+        return created;
+      } catch (e) {
+        console.error("Error creating playlist in backend", e);
+        throw e;
+      }
+    }
   };
 
-  const deletePlaylist = (id: string) => {
+  const deletePlaylist = async (id: string) => {
     if (id === 'downloaded') return;
-    setUserPlaylists(prev => prev.filter(p => p.id !== id));
+    if (isMobile) {
+      setUserPlaylists(prev => prev.filter(p => p.id !== id));
+    } else {
+      try {
+        await api.deletePlaylist(id);
+        setUserPlaylists(prev => prev.filter(p => p.id !== id));
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
-  const renamePlaylist = (id: string, name: string) => {
+  const renamePlaylist = async (id: string, name: string) => {
     if (id === 'downloaded') return;
-    setUserPlaylists(prev => prev.map(p => p.id === id ? { ...p, name } : p));
+    if (isMobile) {
+      setUserPlaylists(prev => prev.map(p => p.id === id ? { ...p, name } : p));
+    } else {
+      try {
+        await api.renamePlaylist(id, name);
+        setUserPlaylists(prev => prev.map(p => p.id === id ? { ...p, name } : p));
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
-  const addSongToPlaylist = (playlistId: string, song: Song) => {
+  const addSongToPlaylist = async (playlistId: string, song: Song) => {
     if (playlistId === 'downloaded') return;
-    setUserPlaylists(prev => prev.map(p => {
-      if (p.id !== playlistId) return p;
-      if (p.songs.some(s => s.ytid === song.ytid)) return p;
-      return {
-        ...p,
-        songs: [...p.songs, song],
-        coverThumbnail: p.coverThumbnail || song.thumbnail,
-      };
-    }));
+    if (isMobile) {
+      setUserPlaylists(prev => prev.map(p => {
+        if (p.id !== playlistId) return p;
+        if (p.songs.some(s => s.ytid === song.ytid)) return p;
+        return {
+          ...p,
+          songs: [...p.songs, song],
+          coverThumbnail: p.coverThumbnail || song.thumbnail,
+        };
+      }));
+    } else {
+      try {
+        const updated = await api.addSongToPlaylist(playlistId, song);
+        setUserPlaylists(prev => prev.map(p => p.id === playlistId ? updated : p));
+      } catch (e) {
+        console.error("Error adding song", e);
+      }
+    }
   };
 
-  const removeSongFromPlaylist = (playlistId: string, ytid: string) => {
+  const removeSongFromPlaylist = async (playlistId: string, ytid: string) => {
     if (playlistId === 'downloaded') return;
-    setUserPlaylists(prev => prev.map(p => {
-      if (p.id !== playlistId) return p;
-      const songs = p.songs.filter(s => s.ytid !== ytid);
-      return { ...p, songs, coverThumbnail: songs[0]?.thumbnail };
-    }));
+    if (isMobile) {
+      setUserPlaylists(prev => prev.map(p => {
+        if (p.id !== playlistId) return p;
+        const songs = p.songs.filter(s => s.ytid !== ytid);
+        return { ...p, songs, coverThumbnail: songs[0]?.thumbnail };
+      }));
+    } else {
+      try {
+        const updated = await api.removeSongFromPlaylist(playlistId, ytid);
+        setUserPlaylists(prev => prev.map(p => p.id === playlistId ? updated : p));
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
   const getPlaylist = (id: string) => playlists.find(p => p.id === id);

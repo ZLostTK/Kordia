@@ -23,6 +23,7 @@ class ErrorResponse(BaseModel):
 
 class StreamResponse(BaseModel):
     """Respuesta de URL de stream"""
+    ytid: str = Field(..., description="ID del video de YouTube")
     url: str = Field(..., description="URL del stream de audio")
     cached: bool = Field(..., description="Si la URL proviene del caché")
 
