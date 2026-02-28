@@ -10,7 +10,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Kordia - Tu música offline',
+        name: 'Kordia - Tu app de música',
         short_name: 'Kordia',
         description: 'Aplicación de música con soporte offline',
         theme_color: '#030712',
