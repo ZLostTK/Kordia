@@ -5,7 +5,7 @@ import { Song } from '../types';
 import { api } from '../services/api';
 
 export default function OfflineCachedView() {
-  const { playSong } = usePlayer();
+  const { playSong, currentSong } = usePlayer();
   const { downloadedPlaylist } = usePlaylists();
   
   const offlineSongs = downloadedPlaylist?.songs || [];
@@ -39,7 +39,16 @@ export default function OfflineCachedView() {
         <div className="bg-gradient-to-b from-purple-900/40 to-gray-900 p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
           <div className="w-32 h-32 flex-shrink-0 bg-gray-800 rounded-xl shadow-lg border border-gray-700 flex items-center justify-center overflow-hidden">
             {offlineSongs[0]?.thumbnail ? (
-              <img src={offlineSongs[0].thumbnail} alt="Cover" className="w-full h-full object-cover" />
+              <img 
+                src={offlineSongs[0].thumbnail} 
+                alt="Cover" 
+                className="w-full h-full object-cover" 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = ''; 
+                  (e.target as HTMLImageElement).className = 'hidden';
+                  (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="text-gray-500"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-music"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>';
+                }}
+              />
             ) : (
               <Download size={48} className="text-gray-500" />
             )}
@@ -71,28 +80,43 @@ export default function OfflineCachedView() {
             </div>
           ) : (
             <div className="space-y-2">
-              {offlineSongs.map((song, index) => (
-                <div
-                  key={song.ytid}
-                  onClick={() => handlePlay(song)}
-                  className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-800/80 transition cursor-pointer group border border-transparent hover:border-gray-700/50"
-                >
-                  <div className="text-gray-500 font-medium w-6 text-center">{index + 1}</div>
-                  <img
-                    src={song.thumbnail || `https://i.ytimg.com/vi/${song.ytid}/mqdefault.jpg`}
-                    alt={song.title}
-                    className="w-12 h-12 rounded-lg object-cover shadow-sm"
-                    onError={e => { (e.target as HTMLImageElement).src = `https://i.ytimg.com/vi/${song.ytid}/mqdefault.jpg`; }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-gray-100 font-medium truncate group-hover:text-purple-400 transition-colors">{song.title}</h4>
-                    <p className="text-gray-400 text-sm truncate">{song.artist}</p>
+              {offlineSongs.map((song, index) => {
+                const isActive = currentSong?.ytid === song.ytid;
+                return (
+                  <div
+                    key={song.ytid}
+                    onClick={() => handlePlay(song)}
+                    className={`flex items-center gap-4 p-3 rounded-xl transition cursor-pointer group border ${
+                      isActive 
+                        ? 'bg-purple-600/20 border-purple-500/50' 
+                        : 'bg-transparent border-transparent hover:bg-gray-800/80 hover:border-gray-700/50'
+                    }`}
+                  >
+                    <div className={`${isActive ? 'text-purple-400' : 'text-gray-500'} font-medium w-6 text-center`}>
+                      {index + 1}
+                    </div>
+                    <div className="w-12 h-12 rounded-lg bg-gray-800 flex-shrink-0 flex items-center justify-center overflow-hidden shadow-sm">
+                      <img
+                        src={song.thumbnail || `https://i.ytimg.com/vi/${song.ytid}/mqdefault.jpg`}
+                        alt={song.title}
+                        className="w-full h-full object-cover"
+                        onError={e => { 
+                          (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-music"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>'; 
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className={`font-medium truncate transition-colors ${isActive ? 'text-purple-400' : 'text-gray-100 group-hover:text-purple-400'}`}>
+                        {song.title}
+                      </h4>
+                      <p className="text-gray-400 text-sm truncate">{song.artist}</p>
+                    </div>
+                    <button className={`${isActive ? 'text-purple-400 opacity-100' : 'text-gray-500 opacity-0 group-hover:opacity-100'} transition-opacity p-2 hover:bg-white/5 rounded-full`}>
+                      <Play size={18} className="fill-current" />
+                    </button>
                   </div>
-                  <button className="text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-white/5 rounded-full">
-                    <Play size={18} className="fill-current hover:text-purple-400" />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

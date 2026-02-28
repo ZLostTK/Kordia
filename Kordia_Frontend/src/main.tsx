@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sileo';
 import App from './App.tsx';
 import './index.css';
+import { registerSW } from 'virtual:pwa-register';
+
+// Registra el Service Worker de forma automática
+registerSW({ immediate: true });
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

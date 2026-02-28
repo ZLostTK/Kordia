@@ -34,15 +34,19 @@ export const api = {
     });
     if (!response.ok) throw new Error('Download failed');
 
-    // Force the Service Worker to cache the audio file on the frontend
+    // Force the Service Worker to cache the audio file and thumbnail on the frontend
     try {
       const audioUrl = api.getOfflineAudioUrl(song.ytid);
-      const cache = await caches.open('audio-cache');
-      
-      // We do a simple GET fetch to retrieve and cache the blob.
-      await cache.add(audioUrl);
+      const audioCache = await caches.open('audio-cache');
+      await audioCache.add(audioUrl);
+
+      // Also cache the thumbnail if it exists
+      if (song.thumbnail) {
+        const thumbCache = await caches.open('yt-thumbnails');
+        await thumbCache.add(song.thumbnail);
+      }
     } catch (err) {
-      console.error('Failed to cache audio in Service Worker:', err);
+      console.error('Failed to cache resources in Service Worker:', err);
     }
   },
 
