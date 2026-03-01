@@ -11,6 +11,8 @@ services:
       - PUID=1000
       - TZ=America/Mexico_City
       - CORS_ORIGINS=*
+      # Agrega aquí la IP de tu PC o tu dominio local (.local) para que mkcert genere el SSL
+      - MKCERT_DOMAINS=192.168.1.60 ubuntu.local
 
     ports:
       - "8000:8000"
@@ -33,7 +35,6 @@ networks:
 x-casaos:
   author: ZLostTK
   category: Music
-  hostname: linuxlite.local
   icon: https://raw.githubusercontent.com/ZLostTK/Kordia/main/Kordia_Frontend/public/pwa-192x192.png
   index: /
   is_uncontrolled: false
