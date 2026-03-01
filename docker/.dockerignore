@@ -1,13 +1,63 @@
+# --- Node.js / Frontend ---
 **/node_modules
-**/.env
-**/.venv
-**/__pycache__
 **/dist
+**/.env
+**/.env.local
+**/.env.*.local
+**/.next
+**/.cache
+**/build
+
+# --- Python / Backend ---
+**/__pycache__
+**/*.py[cod]
+**/*.$py.class
+**/.venv
+**/venv
+**/.env
+**/.pytest_cache
+**/.coverage
+**/htmlcov
+
+# --- Data & Databases ---
 **/Kordia_data
-**/.git
 **/*.db
-**/*.log
-Docker/
+**/*.sqlite
+**/*.sqlite3
+
+# --- Security & Certificates ---
+**/*.pem
+**/*.key
+**/*.crt
+**/*.csr
+cert.pem
+key.pem
+
+# --- OS / IDE Junk ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.project
+.settings/
+*.swp
+*.swo
+.DS_Store?
+
+# --- Git ---
+.git
+.gitignore
+.gitattributes
+
+# --- Docker specific ---
 docker/
 Dockerfile
 docker-compose.yml
+.dockerignore
+build.sh
+
+# --- Logs ---
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

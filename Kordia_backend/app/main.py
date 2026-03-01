@@ -27,14 +27,15 @@ def main():
     # Configurar FFmpeg automáticamente
     setup_ffmpeg()
     
-    print("🎵 Iniciando Kordia Backend...")
-    print(f"📝 Documentación API: http://{settings.host}:{settings.port}/docs")
-    
-    # Configuración de SSL para desarrollo (HTTPS)
+    # Configuración de SSL (HTTPS)
     from pathlib import Path
     ssl_key = Path("key.pem")
     ssl_cert = Path("cert.pem")
     ssl_kwargs = {}
+    
+    print("🎵 Iniciando Kordia Backend...")
+    protocol = "https" if ssl_key.exists() and ssl_cert.exists() else "http"
+    print(f"📝 Documentación API: {protocol}://{settings.host}:{settings.port}/docs")
     
     if ssl_key.exists() and ssl_cert.exists():
         ssl_kwargs = {
@@ -42,9 +43,8 @@ def main():
             "ssl_certfile": str(ssl_cert)
         }
         print(f"🔒 HTTPS habilitado: https://{settings.host}:{settings.port}")
-    else:
-        print(f"🔓 HTTP habilitado: http://{settings.host}:{settings.port}")
-
+    
+    # El arranque se hace con el protocolo detectado
     uvicorn.run(
         "app:app",
         host=settings.host,

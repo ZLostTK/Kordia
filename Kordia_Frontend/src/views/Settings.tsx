@@ -36,7 +36,7 @@ export default function Settings() {
           </div>
           <div className="flex justify-between">
             <span className="text-gray-400">Versión</span>
-            <span className="text-white font-medium">1.0.0</span>
+            <span className="text-white font-medium">1.0.4</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-400">Backend</span>

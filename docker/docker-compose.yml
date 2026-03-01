@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   kordia:
-    image: zlosttk/kordia-music-app:1.0.0
+    image: zlosttk/kordia-music-app:1.0.4
     container_name: kordia
     hostname: kordia
 
@@ -12,7 +12,26 @@ services:
       - TZ=America/Mexico_City
       - CORS_ORIGINS=*
       # Agrega aquí la IP de tu PC o tu dominio local (.local) para que mkcert genere el SSL
-      - MKCERT_DOMAINS=192.168.1.60 ubuntu.local
+      - MKCERT_DOMAINS=192.168.1.61 192.168.1.60 ubuntu.local
+      # Data directories
+      - DATA_DIR=./Kordia_data
+      # Cache configuration
+      - CACHE_TTL=5400
+      - CACHE_MAX_SIZE=500
+      - CACHE_CLEANUP_DAYS=30
+      # yt-dlp configuration
+      - YTDLP_QUIET=true
+      - YTDLP_NO_WARNINGS=true
+      # Audio format
+      - AUDIO_FORMAT=m4a
+      - AUDIO_CODEC=m4a
+      # Application
+      - APP_NAME=Kordia API
+      - APP_VERSION=1.0.4
+      - DEBUG=false
+      # Server
+      - HOST=0.0.0.0
+      - PORT=8000
 
     ports:
       - "8000:8000"
@@ -39,7 +58,7 @@ x-casaos:
   index: /
   is_uncontrolled: false
   port_map: "8000"
-  scheme: http
+  scheme: https
   store_app_id: kordia
   title:
     custom: "Kordia"
