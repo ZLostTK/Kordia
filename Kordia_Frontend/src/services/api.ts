@@ -31,9 +31,12 @@ export const api = {
         const proxyResponse = await fetch(`${API_BASE_URL}/stream/proxy/${song.ytid}`);
         if (!proxyResponse.ok) throw new Error('Proxy download failed');
         
+        // Optimizamos convirtiendo a Blob antes del cache.put().
+        // Esto evita cuellos de botella de I/O en móviles con streams de larga duración.
+        const audioBlob = await proxyResponse.blob();
         const audioUrl = api.getOfflineAudioUrl(song.ytid);
         const audioCache = await caches.open('audio-cache');
-        await audioCache.put(audioUrl, proxyResponse);
+        await audioCache.put(audioUrl, new Response(audioBlob));
 
         if (song.thumbnail) {
           const thumbCache = await caches.open('yt-thumbnails');

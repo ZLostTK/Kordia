@@ -2,7 +2,7 @@
 Rutas de streaming
 """
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 import aiosqlite
 import aiohttp
 from app.schemas.responses import StreamResponse
@@ -59,46 +59,48 @@ async def get_stream_url(
             detail=f"Error obteniendo stream: {str(e)}"
         )
 
+from fastapi import BackgroundTasks
+import shutil
+
 @router.get("/proxy/{ytid}")
 async def proxy_stream(
     ytid: str,
+    background_tasks: BackgroundTasks,
     youtube_service: YouTubeService = Depends(get_youtube_service),
     cache_service: CacheService = Depends(get_cache_service),
     db: aiosqlite.Connection = Depends(get_db)
 ):
     """
     Proxy directo del stream de audio para guardado local en clientes móviles.
-    Evita guardar el achivo en el servidor host de PC.
+    Usa yt-dlp para descargar rápido a disco y FileResponse para transferir C++-speed bytes,
+    limpiando usando background tasks.
     """
     try:
-        cache_repo = StreamCacheRepository(db)
+        import tempfile
+        import os
+        from fastapi.responses import FileResponse
         
-        # Verificar caché
-        url = await cache_service.get_stream_url(ytid, cache_repo)
-        if not url:
-            url = await youtube_service.get_stream_url(ytid)
-            if not url:
-                raise HTTPException(status_code=404, detail="No se pudo obtener URL de stream")
-            await cache_service.save_stream_url(ytid, url, cache_repo)
-            
-        # Para obtener el Content-Length antes de empezar a transmitir,
-        # necesitaríamos hacer una petición HEAD o la primera petición fuera del generador
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                content_length = response.headers.get('Content-Length')
+        # Crear un directorio que no se auto-borra inmediatamente
+        tmpdir = tempfile.mkdtemp()
+        temp_path_base = os.path.join(tmpdir, ytid)
+        
+        # fast_download_audio descarga el raw a disco SIN pasar por FFmpeg (mucho más rápido)
+        ext = await youtube_service.fast_download_audio(ytid, temp_path_base)
+        downloaded_file = f"{temp_path_base}.{ext}"
                 
-                # Definir cabeceras iniciales
-                headers = {
-                    "Accept-Ranges": "bytes",
-                }
-                if content_length:
-                    headers["Content-Length"] = content_length
-
-                return StreamingResponse(
-                    response.content.iter_any(),
-                    media_type="audio/webm",
-                    headers=headers
-                )
+        if not os.path.exists(downloaded_file):
+            shutil.rmtree(tmpdir, ignore_errors=True)
+            raise HTTPException(status_code=500, detail="Error de descarga temporal rápida")
+        
+        # Aseguramos que se borre UNA VEZ TERMINADO DE SERVIR usando BackgroundTasks
+        background_tasks.add_task(shutil.rmtree, tmpdir, ignore_errors=True)
+        
+        # FileResponse usa los binarios asincrónicos de C más rápidos (sendfile)
+        return FileResponse(
+            path=downloaded_file,
+            media_type="audio/mp4",
+            filename=f"{ytid}.{ext}"
+        )
 
     except HTTPException:
         raise

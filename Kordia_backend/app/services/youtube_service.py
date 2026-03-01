@@ -133,6 +133,31 @@ class YouTubeService:
                 'duration': info.get('duration'),
             }
     
+    async def fast_download_audio(
+        self,
+        ytid: str,
+        output_path: str
+    ) -> str:
+        """
+        Descargar audio de YouTube sin postprocesamiento (re-encoding) para máxima velocidad.
+        Útil para el proxy temporal.
+        
+        Returns:
+            Extensión del archivo descargado
+        """
+        ydl_opts = {
+            **self.base_opts,
+            'format': 'bestaudio/best',
+            'outtmpl': f"{output_path}.%(ext)s",
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(
+                f"https://youtube.com/watch?v={ytid}",
+                download=True
+            )
+            return info.get('ext', 'm4a')
+    
     async def get_video_info(self, ytid: str) -> Dict[str, Any]:
         """
         Obtener información de un video sin descargarlo
