@@ -29,7 +29,7 @@ export const api = {
       // Lógica Móvil: Descargar directamente el stream proxy a caché y registrar localmente.
       try {
         const proxyResponse = await fetch(`${API_BASE_URL}/stream/proxy/${song.ytid}`);
-        if (!proxyResponse.ok) throw new Error('Proxy download failed');
+        if (!proxyResponse.ok) throw new Error(`Proxy download failed (${proxyResponse.status})`);
         
         // Optimizamos convirtiendo a Blob antes del cache.put().
         // Esto evita cuellos de botella de I/O en móviles con streams de larga duración.
@@ -38,15 +38,21 @@ export const api = {
         const audioCache = await caches.open('audio-cache');
         await audioCache.put(audioUrl, new Response(audioBlob));
 
+        // Caching de thumbnail: usamos mode 'no-cors' para manejar fuentes de YouTube sin CORS
         if (song.thumbnail) {
-          const thumbCache = await caches.open('yt-thumbnails');
-          await thumbCache.add(song.thumbnail);
+          try {
+            const thumbCache = await caches.open('yt-thumbnails');
+            const thumbRes = await fetch(song.thumbnail, { mode: 'no-cors' });
+            await thumbCache.put(song.thumbnail, thumbRes);
+          } catch (tErr) {
+            console.warn('Failed to cache thumbnail:', tErr);
+            // No bloqueamos la descarga si falla el thumbnail
+          }
         }
 
         const localStr = localStorage.getItem('mobile_offline_songs');
         const localSongs: Song[] = localStr ? JSON.parse(localStr) : [];
         if (!localSongs.some(s => s.ytid === song.ytid)) {
-          // Add `url` explicitly exactly as offline view expects
           const s = { ...song, url: audioUrl };
           localSongs.unshift(s);
           localStorage.setItem('mobile_offline_songs', JSON.stringify(localSongs));
