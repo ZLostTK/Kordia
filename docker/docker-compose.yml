@@ -38,6 +38,7 @@ services:
 
     volumes:
       - /DATA/AppData/kordia/data:/app/backend/Kordia_data
+      - /DATA/AppData/kordia/mkcert:/root/.local/share/mkcert
 
     restart: unless-stopped
 

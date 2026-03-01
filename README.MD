@@ -104,23 +104,50 @@ Incluso con HTTPS activado vía Docker, el móvil marcará la conexión como **"
 Tienes dos formas de solucionarlo:
 
 #### Opción A: Instalar el certificado en tu móvil (Recomendado)
-Para que el móvil confíe en la conexión y funcionen todas las funciones:
-1. Localiza o extrae el archivo `rootCA.pem` que genera mkcert. 
-   - **Si usas la instalación Manual:**
-     - **En Windows:** Presiona `Win + R`, escribe `%LocalAppData%\mkcert` y pulsa Enter.
-     - **En Linux:** Busca en `~/.local/share/mkcert`.
-     - **En Mac:** Busca en `~/Library/Application Support/mkcert`.
-   - **Si usas Docker:**
-     El certificado se genera dentro del contenedor. Puedes extraerlo a tu PC con este comando:
-     ```bash
-     docker exec kordia mkcert -CAROOT # Para ver la ruta (opcional)
-     docker cp kordia:/root/.local/share/mkcert/rootCA.pem ./rootCA.pem
-     ```
-     *Nota: El archivo `rootCA.pem` aparecerá en la carpeta desde donde lances el comando.*
-     
-2. Envía ese archivo a tu móvil.
-3. **En Android:** Ajustes > Seguridad > Cifrado y credenciales > Instalar desde almacenamiento > Certificado de CA.
-4. **En iOS:** Instala el perfil y luego ve a Ajustes > General > Información > Ajustes de confianza de certificados y activa el "rootCA".
+
+Para que tu teléfono confíe en el HTTPS de tu PC y veas el "candado verde" sin advertencias, debes instalar el Certificado Raíz (Root CA) de mkcert en tu móvil.
+
+Aquí tienes los pasos detallados:
+
+1. **Obtén el certificado raíz en tu PC**
+   Primero, necesitas localizar el archivo del certificado que mkcert usa para firmar todos los demás:
+   ```bash
+   # Ejecuta esto en tu terminal para ver dónde está la carpeta
+   mkcert -CAROOT
+   ```
+   *   **En Windows:** `%LocalAppData%\mkcert`
+   *   **En Linux:** `~/.local/share/mkcert`
+   *   **En Mac:** `~/Library/Application Support/mkcert`
+   *   **Si usas Docker:** `docker cp kordia:/root/.local/share/mkcert/rootCA.pem ./rootCA.pem`
+
+   Copia el archivo llamado `rootCA.pem` de esa carpeta a tu teléfono (puedes enviártelo por Telegram, correo, o cable USB).
+
+2. **Genera el certificado de Kordia con tu IP local**
+   Para que el teléfono no dé error al entrar por la IP (ej. 192.168.1.50), el certificado debe incluir esa IP. Busca tu IP local con `ip addr` y luego regenera los archivos en `Kordia_backend/`:
+   ```bash
+   # Reemplaza 192.168.1.XX por tu IP real
+   mkcert -cert-file cert.pem -key-file key.pem localhost 127.0.0.1 ::1 192.168.1.XX
+   ```
+
+3. **Instala el certificado en tu teléfono**
+   - **En Android:**
+     1. Ve a **Ajustes > Seguridad > Cifrado y credenciales** (o busca "certificados" en la lupa).
+     2. Selecciona **Instalar desde el almacenamiento > Certificado de CA**.
+     3. El sistema te dará una advertencia (es normal, tú eres el dueño del servidor). Pulsa **Instalar de todas formas**.
+     4. Selecciona el archivo `rootCA.pem` que pasaste anteriormente.
+   - **En iOS (iPhone):**
+     1. Abre el archivo `rootCA.pem` y pulsa **Instalar perfil**.
+     2. Ve a **Ajustes > Perfil descargado** e instálalo.
+     3. **Paso CRÍTICO en iOS:** Ve a **Ajustes > General > Información > Ajustes de confianza de certificados**.
+     4. Activa el interruptor de **mkcert development CA** para darle confianza total.
+
+4. **Verifica y disfruta**
+   Reinicia el backend de Kordia. Ahora, cuando entres desde el navegador de tu móvil a `https://<tu-ip>:8000`:
+   - Verás el **candado verde**.
+   - Podrás instalar la PWA como si fuera una app nativa.
+   - Todas las funciones Offline funcionarán correctamente.
+
+¡Con esto ya tienes un entorno de desarrollo profesional en toda tu red local! 🐧🔒📱
 
 #### Opción B: Bypass en Chrome (Solo Android/Desktop)
 Si no quieres instalar cerficados, puedes forzar a Chrome a tratar tu IP como segura:
