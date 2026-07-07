@@ -18,7 +18,8 @@ export async function searchRoutes(app: FastifyInstance): Promise<void> {
   }, async (req) => {
     const { q, max_results } = req.query as { q: string; max_results?: number };
     try {
-      return youtube.search(q, max_results ?? 10).map(e => ({
+      const results = await youtube.search(q, max_results ?? 10);
+      return results.map(e => ({
         ytid: e.id,
         title: e.title,
         artist: e.uploader,
@@ -41,7 +42,7 @@ export async function searchRoutes(app: FastifyInstance): Promise<void> {
   }, async (req) => {
     const { url } = req.query as { url: string };
     try {
-      const result = youtube.getPlaylist(url);
+      const result = await youtube.getPlaylist(url);
       return {
         title: result.title,
         songs: result.songs.map(e => ({

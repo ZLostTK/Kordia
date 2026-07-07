@@ -1,8 +1,10 @@
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { config } from '../config/env.js';
 
+const exec = promisify(execFile);
+
 interface SearchEntry { id?: string; title?: string; uploader?: string; channel?: string; thumbnail?: string; thumbnails?: { url: string }[]; duration?: number; }
-interface PlaylistMeta { title?: string; entries?: SearchEntry[]; }
 
 export class YouTubeService {
   private baseArgs: string[] = ['--no-progress'];
@@ -20,24 +22,24 @@ export class YouTubeService {
     throw new Error('No valid JSON in yt-dlp output');
   }
 
-  search(query: string, maxResults = 10): SearchEntry[] {
-    const out = this.run([
+  async search(query: string, maxResults = 10): Promise<SearchEntry[]> {
+    const out = await this.run([
       ...this.baseArgs, '--flat-playlist', '--dump-json',
       `ytsearch${maxResults}:${query}`,
     ]);
     return out.trim().split('\n').filter(Boolean).map(l => JSON.parse(l)).filter((e: SearchEntry) => e && e.id && e.title);
   }
 
-  getStreamUrl(ytid: string): string | undefined {
-    const out = this.run([
+  async getStreamUrl(ytid: string): Promise<string | undefined> {
+    const out = await this.run([
       ...this.baseArgs, '--format', 'bestaudio/best',
       '--get-url', `https://youtube.com/watch?v=${ytid}`,
     ]);
     return out.trim() || undefined;
   }
 
-  downloadAudio(ytid: string, outputPath: string): { title: string; artist: string; thumbnail: string; duration: number } {
-    const out = this.run([
+  async downloadAudio(ytid: string, outputPath: string): Promise<{ title: string; artist: string; thumbnail: string; duration: number }> {
+    const out = await this.run([
       ...this.baseArgs, '--format', 'bestaudio/best',
       '--output', outputPath,
       '--print', '{"title":"%(title)s","artist":"%(uploader)s","thumbnail":"%(thumbnail)s","duration":%(duration)s}',
@@ -47,8 +49,8 @@ export class YouTubeService {
     return this.lastJson(out);
   }
 
-  fastDownloadAudio(ytid: string, outputPath: string): string {
-    const out = this.run([
+  async fastDownloadAudio(ytid: string, outputPath: string): Promise<string> {
+    const out = await this.run([
       ...this.baseArgs, '--format', 'bestaudio/best',
       '--output', `${outputPath}.%(ext)s`,
       '--print', '%(ext)s',
@@ -58,8 +60,8 @@ export class YouTubeService {
     return lines[lines.length - 1] || 'm4a';
   }
 
-  getVideoInfo(ytid: string): { ytid: string; title: string; artist: string; thumbnail: string; duration: number } {
-    const out = this.run([
+  async getVideoInfo(ytid: string): Promise<{ ytid: string; title: string; artist: string; thumbnail: string; duration: number }> {
+    const out = await this.run([
       ...this.baseArgs, '--skip-download', '--dump-json',
       `https://youtube.com/watch?v=${ytid}`,
     ]);
@@ -67,23 +69,21 @@ export class YouTubeService {
     return { ytid, title: info.title, artist: info.uploader, thumbnail: info.thumbnail, duration: info.duration };
   }
 
-  getPlaylist(urlOrId: string): { title: string; songs: SearchEntry[] } {
+  async getPlaylist(urlOrId: string): Promise<{ title: string; songs: SearchEntry[] }> {
     let finalUrl = urlOrId;
     if (!urlOrId.startsWith('http')) {
       const match = urlOrId.match(/[?&]list=([a-zA-Z0-9_-]+)/);
       const playlistId = match ? match[1] : urlOrId;
       finalUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
     }
-    // First call: get playlist metadata (title) without --flat-playlist
-    const metaOut = this.run([
+    const metaOut = await this.run([
       ...this.baseArgs, '--skip-download', '--dump-single-json',
       '--playlist-items', '0',
       finalUrl,
     ]);
     const meta = this.lastJson<{ title?: string }>(metaOut);
 
-    // Second call: get flat song entries
-    const songsOut = this.run([
+    const songsOut = await this.run([
       ...this.baseArgs, '--flat-playlist', '--dump-json',
       finalUrl,
     ]);
@@ -97,10 +97,8 @@ export class YouTubeService {
     return { title: meta.title || 'Playlist importada', songs };
   }
 
-  private run(args: string[]): string {
-    return execFileSync('yt-dlp', args, {
-      encoding: 'utf-8',
-      maxBuffer: 50 * 1024 * 1024,
-    });
+  private async run(args: string[]): Promise<string> {
+    const { stdout } = await exec('yt-dlp', args, { maxBuffer: 50 * 1024 * 1024 });
+    return stdout;
   }
 }

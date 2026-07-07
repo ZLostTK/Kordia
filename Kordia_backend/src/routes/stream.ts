@@ -25,7 +25,7 @@ export async function streamRoutes(app: FastifyInstance): Promise<void> {
       const cached = cache.getStreamUrl(ytid, repo);
       if (cached) return { ytid, url: cached, cached: true };
 
-      const url = youtube.getStreamUrl(ytid);
+      const url = await youtube.getStreamUrl(ytid);
       if (!url) return reply.code(404).send({ error: 'No se pudo obtener URL de stream' });
 
       cache.saveStreamUrl(ytid, url, repo);
@@ -44,7 +44,7 @@ export async function streamRoutes(app: FastifyInstance): Promise<void> {
     const cleanup = () => rm(tmpdirPath, { recursive: true, force: true }).catch(() => {});
 
     try {
-      const ext = youtube.fastDownloadAudio(ytid, basePath);
+      const ext = await youtube.fastDownloadAudio(ytid, basePath);
       const filePath = `${basePath}.${ext}`;
 
       if (!existsSync(filePath)) {

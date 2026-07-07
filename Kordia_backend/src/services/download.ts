@@ -19,7 +19,7 @@ export class DownloadService {
     try {
       const audioPath = this.storage.getAudioPath(ytid);
       const outputPath = audioPath.replace(/\.\w+$/, '');
-      const info = this.youtube.downloadAudio(ytid, outputPath);
+      const info = await this.youtube.downloadAudio(ytid, outputPath);
       const artworkPath = thumbnail ? await this.storage.saveThumbnail(ytid, thumbnail) : null;
 
       this.offlineRepo.save(ytid, title || info.title, audioPath, artist || info.artist, thumbnail, artworkPath);
