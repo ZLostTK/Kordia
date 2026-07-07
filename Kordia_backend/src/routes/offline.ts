@@ -27,6 +27,7 @@ export async function offlineRoutes(app: FastifyInstance): Promise<void> {
   }, async (req, reply) => {
     const { ytid } = req.params as { ytid: string };
     const body = req.body as { ytid: string; title: string; artist?: string; thumbnail?: string };
+    if (ytid !== body.ytid) return reply.code(400).send({ error: 'ytid mismatch between URL and body' });
     try {
       const repo = new OfflineSongsRepository(getDb());
       const dl = new DownloadService(youtube, storage, repo);

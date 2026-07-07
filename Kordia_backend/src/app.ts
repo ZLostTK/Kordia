@@ -25,6 +25,17 @@ export async function buildApp() {
     credentials: !isWildcard,
   });
 
+  // Global error handler
+  app.setErrorHandler((error, req, reply) => {
+    const err = error as any;
+    const statusCode = err.statusCode ?? 500;
+    const message = err.message ?? 'Internal server error';
+    if (statusCode >= 500) {
+      req.log.error({ err: error, url: req.url }, message);
+    }
+    return reply.code(statusCode).send({ error: message });
+  });
+
   // Routes
   await app.register(maintenanceRoutes);
   await app.register(searchRoutes);

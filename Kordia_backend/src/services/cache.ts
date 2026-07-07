@@ -19,6 +19,11 @@ export class CacheService {
   }
 
   saveStreamUrl(ytid: string, url: string, db?: StreamCacheRepository): void {
+    // LRU eviction: delete oldest entry if at capacity
+    if (this.memory.size >= config.cacheMaxSize && !this.memory.has(ytid)) {
+      const oldest = this.memory.keys().next().value;
+      if (oldest) this.memory.delete(oldest);
+    }
     this.memory.set(ytid, { url, expires: Date.now() + config.cacheTtl * 1000 });
     if (db) db.saveUrl(ytid, url);
   }
