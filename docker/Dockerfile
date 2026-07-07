@@ -3,15 +3,15 @@ FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend-builder
 WORKDIR /app/Kordia_Frontend
 
 COPY Kordia_Frontend/package*.json ./
-RUN npm install -g pnpm && pnpm install
+RUN npm install
 COPY Kordia_Frontend/ ./
 
-# Crear el directorio donde Vite espera dejar el build según vite.config.ts
+# Crear el directorio donde Vite espera dejar el build segun vite.config.ts
 WORKDIR /app
 RUN mkdir -p Kordia_backend
 
 WORKDIR /app/Kordia_Frontend
-RUN pnpm run build
+RUN npm run build
 
 # --- STAGE 2: Run the Fastify Backend ---
 FROM node:22-alpine
@@ -27,20 +27,13 @@ RUN apk add --no-cache \
 WORKDIR /app/backend
 
 # Descargar mkcert binario para Alpine (v1.4.4)
-# Detectamos arquitectura automáticamente
+# Detectamos arquitectura automaticamente
 RUN curl -L https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-linux-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') -o /usr/local/bin/mkcert && \
     chmod +x /usr/local/bin/mkcert
 
-# Instalar pnpm globalmente
-RUN npm install -g pnpm
-
-# Configurar pnpm home
-ENV PNPM_HOME=/app/.pnpm
-RUN mkdir -p $PNPM_HOME
-
-# Copiar archivos de dependencias e instalar
+# Copiar archivos de dependencias e instalar solo produccion
 COPY Kordia_backend/package*.json ./
-RUN pnpm install --prod
+RUN npm install --omit=dev
 
 # Copiar el backend y el build del frontend
 COPY Kordia_backend/src ./src
