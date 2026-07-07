@@ -1,7 +1,8 @@
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { config } from '../config/env.js';
 
-interface SearchEntry { id?: string; title?: string; uploader?: string; channel?: string; thumbnail?: string; thumbnails?: { url: string }[]; duration?: number; playlist_title?: string; }
+interface SearchEntry { id?: string; title?: string; uploader?: string; channel?: string; thumbnail?: string; thumbnails?: { url: string }[]; duration?: number; }
+interface PlaylistMeta { title?: string; entries?: SearchEntry[]; }
 
 export class YouTubeService {
   private baseArgs: string[] = [];
@@ -15,7 +16,7 @@ export class YouTubeService {
       ...this.baseArgs, '--flat-playlist', '--dump-json',
       `ytsearch${maxResults}:${query}`,
     ]);
-    return out.trim().split('\n').filter(Boolean).map(l => JSON.parse(l));
+    return out.trim().split('\n').filter(Boolean).map(l => JSON.parse(l)).filter((e: SearchEntry) => e && e.id && e.title);
   }
 
   getStreamUrl(ytid: string): string | undefined {
@@ -64,22 +65,31 @@ export class YouTubeService {
       const playlistId = match ? match[1] : urlOrId;
       finalUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
     }
-    const out = this.run([
+    // First call: get playlist metadata (title) without --flat-playlist
+    const metaOut = this.run([
+      ...this.baseArgs, '--skip-download', '--dump-single-json',
+      '--playlist-items', '0',
+      finalUrl,
+    ]);
+    const meta = JSON.parse(metaOut.trim().split('\n').pop()!);
+
+    // Second call: get flat song entries
+    const songsOut = this.run([
       ...this.baseArgs, '--flat-playlist', '--dump-json',
       finalUrl,
     ]);
-    const lines = out.trim().split('\n').filter(Boolean);
+    const lines = songsOut.trim().split('\n').filter(Boolean);
     const songs: SearchEntry[] = lines.map(l => {
       const e = JSON.parse(l);
       const thumbnail = e.thumbnail || (e.thumbnails?.[e.thumbnails.length - 1]?.url);
-      return { ...e, thumbnail };
+      return { id: e.id, title: e.title, uploader: e.uploader, channel: e.channel, thumbnail, duration: e.duration };
     });
-    // First line has playlist metadata
-    return { title: songs[0]?.playlist_title || 'Playlist importada', songs };
+
+    return { title: meta.title || 'Playlist importada', songs };
   }
 
   private run(args: string[]): string {
-    return execSync('yt-dlp ' + args.map(a => `"${a.replace(/"/g, '\\"')}"`).join(' '), {
+    return execFileSync('yt-dlp', args, {
       encoding: 'utf-8',
       maxBuffer: 50 * 1024 * 1024,
     });
