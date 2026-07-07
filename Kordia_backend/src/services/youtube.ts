@@ -38,9 +38,9 @@ export class YouTubeService {
 
     await ytdlp.download(url)
       .filter('audioonly')
-      .audioFormat(config.audioCodec as any)
+      .audioFormat(config.audioCodec)
       .audioQuality('0')
-      .output(outputPath)
+      .setOutputTemplate(outputPath)
       .run();
 
     return {

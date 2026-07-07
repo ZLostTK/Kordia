@@ -20,9 +20,10 @@ export class DownloadService {
       const audioPath = this.storage.getAudioPath(ytid);
       const outputPath = audioPath.replace(/\.\w+$/, '');
       const info = await this.youtube.downloadAudio(ytid, outputPath);
-      const artworkPath = thumbnail ? await this.storage.saveThumbnail(ytid, thumbnail) : null;
+      const thumbUrl = thumbnail || info.thumbnail;
+      const artworkPath = thumbUrl ? await this.storage.saveThumbnail(ytid, thumbUrl) : null;
 
-      this.offlineRepo.save(ytid, title || info.title, audioPath, artist || info.artist, thumbnail, artworkPath);
+      this.offlineRepo.save(ytid, title || info.title, audioPath, artist || info.artist, thumbUrl, artworkPath);
       return { success: true, message: 'Descarga completada', path: audioPath, artworkPath };
     } catch (e: any) {
       return { success: false, message: `Error en descarga: ${e.message}` };
