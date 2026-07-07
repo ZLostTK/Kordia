@@ -23,7 +23,7 @@ export async function searchRoutes(app: FastifyInstance): Promise<void> {
         ytid: e.id,
         title: e.title,
         artist: e.uploader,
-        thumbnail: e.thumbnail || e.thumbnails?.[e.thumbnails.length - 1]?.url,
+        thumbnail: e.thumbnail,
         duration: e.duration,
       }));
     } catch (e: any) {
@@ -49,7 +49,7 @@ export async function searchRoutes(app: FastifyInstance): Promise<void> {
           ytid: e.id,
           title: e.title,
           artist: e.uploader || e.channel,
-          thumbnail: e.thumbnail || e.thumbnails?.[e.thumbnails.length - 1]?.url,
+          thumbnail: e.thumbnail,
           duration: e.duration,
         })),
       };

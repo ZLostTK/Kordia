@@ -24,8 +24,10 @@ Kordia is a web application for searching, streaming, and downloading music from
 
 - **Node.js** 22+ (tested with 26)
 - **pnpm** (recommended) or npm
-- **yt-dlp** (installed on the system PATH)
-- **FFmpeg** (installed on the system PATH)
+- **FFmpeg** (required by yt-dlp for audio extraction)
+
+> [!NOTE]
+> yt-dlp is bundled via the `ytdlp-nodejs` package. No system installation required.
 
 ## Installation
 

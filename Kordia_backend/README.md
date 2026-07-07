@@ -4,7 +4,7 @@ TypeScript REST API for searching, streaming, and downloading music from YouTube
 
 ## Features
 
-- YouTube search via yt-dlp
+- YouTube search via yt-dlp (bundled)
 - Audio stream (direct URL or server-proxied)
 - Offline song download with artwork optimization
 - Two-level cache (memory LRU + SQLite) for stream URLs
@@ -36,7 +36,7 @@ Kordia_backend/
 │   │   ├── song.ts
 │   │   └── responses.ts
 │   ├── services/        # Business logic
-│   │   ├── youtube.ts           # yt-dlp wrapper (promisified execFile)
+│   │   ├── youtube.ts           # yt-dlp via ytdlp-nodejs (no system dep)
 │   │   ├── cache.ts             # Two-level cache (memory + SQLite)
 │   │   ├── download.ts          # Download orchestrator
 │   │   └── storage.ts           # File I/O + sharp thumbnails
@@ -52,8 +52,7 @@ Kordia_backend/
 
 - Node.js 22+ (tested with 26)
 - pnpm (recommended) or npm
-- yt-dlp on PATH
-- FFmpeg on PATH
+- FFmpeg on PATH (required by yt-dlp for audio extraction)
 
 ## Quick Start
 
@@ -147,7 +146,7 @@ Kordia_data/
 - **Fastify 5** — Server framework
 - **TypeBox** — Runtime type definitions
 - **node:sqlite** — SQLite (native, no deps)
-- **yt-dlp** — Audio extraction
+- **yt-dlp** (via ytdlp-nodejs) — Audio extraction (bundled, no system install)
 - **sharp** — Thumbnail processing
 - **undici** — HTTP client
 - **dotenv** — Environment config

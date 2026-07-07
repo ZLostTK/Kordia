@@ -29,6 +29,9 @@ importers:
       undici:
         specifier: ^7.5.0
         version: 7.28.0
+      ytdlp-nodejs:
+        specifier: ^3.4.4
+        version: 3.4.4
     devDependencies:
       '@types/node':
         specifier: ^22.14.1
@@ -712,6 +715,11 @@ packages:
     engines: {node: '>= 8'}
     hasBin: true
 
+  ytdlp-nodejs@3.4.4:
+    resolution: {integrity: sha512-PR2nQOtyOzSuSQpWf6SHD97d6qlcfY2y6CVCeYnuDacYDc1YzNLXYiqAyIpFWk13UUrtQN+XD35h5DERli3SXQ==}
+    engines: {node: '>=16.0.0'}
+    hasBin: true
+
 snapshots:
 
   '@emnapi/runtime@1.11.2':
@@ -1285,3 +1293,5 @@ snapshots:
   which@2.0.2:
     dependencies:
       isexe: 2.0.0
+
+  ytdlp-nodejs@3.4.4: {}

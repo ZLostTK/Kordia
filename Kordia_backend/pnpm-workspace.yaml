@@ -1,3 +1,6 @@
+allowBuilds:
+  ytdlp-nodejs: true
 onlyBuiltDependencies:
   - esbuild
   - sharp
+  - ytdlp-nodejs
