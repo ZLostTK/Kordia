@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { mkdtempSync, existsSync } from 'fs';
+import { mkdtempSync, existsSync, createReadStream } from 'fs';
 import { rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -11,6 +11,10 @@ import { config } from '../config/env.js';
 
 const youtube = new YouTubeService();
 const cache = new CacheService();
+
+function sanitize(input: string): string {
+  return input.replace(/[^a-zA-Z0-9_-]/g, '');
+}
 
 export async function streamRoutes(app: FastifyInstance): Promise<void> {
   app.get('/stream/:ytid', async (req, reply) => {
@@ -33,25 +37,28 @@ export async function streamRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/stream/proxy/:ytid', async (req, reply) => {
     const { ytid } = req.params as { ytid: string };
+    const safeId = sanitize(ytid);
+    const tmpdirPath = mkdtempSync(join(tmpdir(), 'kordia-'));
+    const basePath = join(tmpdirPath, safeId);
+
+    const cleanup = () => rm(tmpdirPath, { recursive: true, force: true }).catch(() => {});
+
     try {
-      const tmpdirPath = mkdtempSync(join(tmpdir(), 'kordia-'));
-      const basePath = join(tmpdirPath, ytid);
       const ext = youtube.fastDownloadAudio(ytid, basePath);
       const filePath = `${basePath}.${ext}`;
 
       if (!existsSync(filePath)) {
-        await rm(tmpdirPath, { recursive: true, force: true });
+        await cleanup();
         return reply.code(500).send({ error: 'Error de descarga temporal' });
       }
 
       reply.header('Content-Type', 'audio/mp4');
-      reply.header('Content-Disposition', `attachment; filename="${ytid}.${ext}"`);
-      const stream = require('fs').createReadStream(filePath);
-      reply.send(stream);
+      reply.header('Content-Disposition', `attachment; filename="${safeId}.${ext}"`);
 
-      // Cleanup after response
-      reply.then(() => rm(tmpdirPath, { recursive: true, force: true }).catch(() => {}), () => {});
+      reply.raw.on('close', cleanup);
+      return reply.send(createReadStream(filePath));
     } catch (e: any) {
+      await cleanup();
       throw { statusCode: 500, message: e.message };
     }
   });

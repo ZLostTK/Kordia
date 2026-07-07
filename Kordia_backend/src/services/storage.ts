@@ -1,6 +1,6 @@
 import { writeFile } from 'fs/promises';
-import { existsSync, unlinkSync } from 'fs';
-import { resolve } from 'path';
+import { existsSync, unlinkSync, readdirSync, statSync } from 'fs';
+import { resolve, dirname, extname, join } from 'path';
 import { config } from '../config/env.js';
 import sharp from 'sharp';
 
@@ -13,7 +13,8 @@ export class StorageService {
       const resp = await fetch(thumbnailUrl);
       if (!resp.ok) return null;
       const buf = Buffer.from(await resp.arrayBuffer());
-      const outPath = resolve(this.artworkDir, `${ytid}.jpg`);
+      const safeId = ytid.replace(/[^a-zA-Z0-9_-]/g, '');
+      const outPath = resolve(this.artworkDir, `${safeId}.jpg`);
 
       if (optimize) {
         await sharp(buf)
@@ -30,23 +31,27 @@ export class StorageService {
   }
 
   deleteAudio(ytid: string): boolean {
-    return this.deleteFile(resolve(this.audioDir, `${ytid}.${config.audioFormat}`));
+    return this.deleteFile(this.getAudioPath(ytid));
   }
 
   deleteArtwork(ytid: string): boolean {
-    return this.deleteFile(resolve(this.artworkDir, `${ytid}.jpg`));
+    return this.deleteFile(this.getArtworkPath(ytid));
   }
 
   deleteSongFiles(ytid: string): { audioDeleted: boolean; artworkDeleted: boolean } {
     return { audioDeleted: this.deleteAudio(ytid), artworkDeleted: this.deleteArtwork(ytid) };
   }
 
+  private safeId(ytid: string): string {
+    return ytid.replace(/[^a-zA-Z0-9_-]/g, '');
+  }
+
   getAudioPath(ytid: string): string {
-    return resolve(this.audioDir, `${ytid}.${config.audioFormat}`);
+    return resolve(this.audioDir, `${this.safeId(ytid)}.${config.audioFormat}`);
   }
 
   getArtworkPath(ytid: string): string {
-    return resolve(this.artworkDir, `${ytid}.jpg`);
+    return resolve(this.artworkDir, `${this.safeId(ytid)}.jpg`);
   }
 
   audioExists(ytid: string): boolean {
@@ -58,16 +63,12 @@ export class StorageService {
   }
 
   getStorageStats(): { audioCount: number; artworkCount: number; totalAudioSizeMb: number; totalArtworkSizeMb: number } {
-    const fs = require('fs');
-    const glob = (pattern: string) => {
-      const dir = require('path').dirname(pattern);
-      const ext = require('path').extname(pattern);
-      return fs.readdirSync(dir).filter((f: string) => f.endsWith(ext)).map((f: string) => require('path').join(dir, f));
-    };
-    const audioFiles = glob(`${this.audioDir}/*.${config.audioFormat}`);
-    const artworkFiles = glob(`${this.artworkDir}/*.jpg`);
-    const totalAudioSize = audioFiles.reduce((s: number, f: string) => s + fs.statSync(f).size, 0);
-    const totalArtworkSize = artworkFiles.reduce((s: number, f: string) => s + fs.statSync(f).size, 0);
+    const glob = (dir: string, ext: string) =>
+      readdirSync(dir).filter(f => f.endsWith(ext)).map(f => join(dir, f));
+    const audioFiles = glob(this.audioDir, `.${config.audioFormat}`);
+    const artworkFiles = glob(this.artworkDir, '.jpg');
+    const totalAudioSize = audioFiles.reduce((s, f) => s + statSync(f).size, 0);
+    const totalArtworkSize = artworkFiles.reduce((s, f) => s + statSync(f).size, 0);
     return {
       audioCount: audioFiles.length,
       artworkCount: artworkFiles.length,
