@@ -1,174 +1,162 @@
-# 🎵 Kordia - Music App
+# Kordia - Music App
 
-Kordia es una aplicación web moderna diseñada para buscar, transmitir y descargar música de YouTube con soporte completo para uso sin conexión (PWA).
+![Project Preview](./screenshot.png)
 
----
+Kordia is a web application for searching, streaming, and downloading music from YouTube. It runs as a Progressive Web App (PWA) with full offline support.
+
+## Architecture
+
+- **Backend:** TypeScript (Fastify 5), yt-dlp audio extraction, SQLite via node:sqlite
+- **Frontend:** React 18, TypeScript, Tailwind CSS, Vite, PWA (Workbox)
+- **Database:** SQLite (reads existing Kordia.db from previous Python version)
+
+## Features
+
+- Search YouTube tracks via yt-dlp
+- Stream audio directly (direct stream or proxy)
+- Download songs for offline playback
+- Playlist management (create, rename, delete, add/remove songs)
+- Import entire YouTube playlists
+- PWA with service worker caching (installable on mobile)
+- SSL auto-setup via mkcert (Docker or local)
+
+## Requirements
+
+- **Node.js** 22+ (tested with 26)
+- **pnpm** (recommended) or npm
+- **yt-dlp** (installed on the system PATH)
+- **FFmpeg** (installed on the system PATH)
+
+## Installation
+
+### Manual (Development)
+
+> [!NOTE]
+> pnpm is required for the backend. Install it via `npm install -g pnpm`.
+
+**1. Backend**
+
+```bash
+cd Kordia_backend
+pnpm install
+cp .env.example .env
+npx tsx src/main.ts
+```
+
+The server starts on `http://localhost:8000`. The frontend SPA must be built separately (see step 2) or served standalone (step 3).
+
+**2. Frontend (development mode)**
+
+```bash
+cd Kordia_Frontend
+pnpm install
+cp .env.example .env
+pnpm dev
+```
+
+The Vite dev server starts on `http://localhost:5173` and proxies API calls to the backend.
+
+**3. Frontend (production build, served by backend)**
+
+```bash
+cd Kordia_Frontend
+pnpm build
+# Assets are written to ../Kordia_backend/dist/
+# Then restart the backend - it serves the SPA
+```
+
+### Docker
+
+> [!WARNING]
+> The Dockerfile is currently Python-based (legacy). The TypeScript backend migration is complete but the Dockerfile has not been updated yet. For now, use the manual installation method.
+
+## Environment Variables
+
+### Backend
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `8000` | Server port |
+| `HOST` | `0.0.0.0` | Bind address |
+| `CORS_ORIGINS` | `*` | Allowed origins (comma-separated) |
+| `DATA_DIR` | `./Kordia_data` | Data directory (audio, artwork, DB) |
+| `CACHE_TTL` | `5400` | Stream cache TTL (seconds) |
+| `CACHE_MAX_SIZE` | `500` | Max cached entries |
+| `CACHE_CLEANUP_DAYS` | `30` | Stale cache cleanup interval |
+| `YTDLP_QUIET` | `true` | Suppress yt-dlp output |
+| `YTDLP_NO_WARNINGS` | `true` | Suppress yt-dlp warnings |
+| `AUDIO_FORMAT` | `m4a` | Download audio format |
+| `AUDIO_CODEC` | `m4a` | Download audio codec |
+
+### Frontend
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VITE_API_URL` | `http://localhost:8000` | Backend API URL |
+
+## API Routes
+
+### Search & Stream
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/search?q=<query>` | Search YouTube |
+| GET | `/stream/:ytid` | Direct audio stream URL |
+| GET | `/stream/proxy/:ytid` | Server-proxied audio stream |
+| GET | `/playlist/import?url=<playlist>` | Import a YouTube playlist |
+
+### Playlists
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/playlists` | List all playlists |
+| POST | `/playlists` | Create playlist |
+| GET | `/playlists/:id` | Get playlist with songs |
+| PUT | `/playlists/:id` | Rename playlist |
+| DELETE | `/playlists/:id` | Delete playlist |
+| POST | `/playlists/:id/songs` | Add song to playlist |
+| DELETE | `/playlists/:id/songs/:ytid` | Remove song from playlist |
+
+### Offline / Download
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/offline/download/:ytid` | Download song for offline |
+| GET | `/offline` | List offline songs |
+| GET | `/offline/audio/:ytid` | Serve offline audio file |
+| GET | `/offline/artwork/:ytid` | Serve offline artwork |
+| DELETE | `/offline/:ytid` | Delete offline song |
+
+### Maintenance
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Health check |
+| POST | `/cleanup` | Clean stale cache and temp files |
+
+## PWA / Mobile Setup
+
+> [!NOTE]
+> PWA requires HTTPS. The backend auto-detects `cert.pem` and `key.pem` in the project root and enables HTTPS if both exist. Generate them with mkcert:
+
+```bash
+mkcert -cert-file cert.pem -key-file key.pem localhost 127.0.0.1 ::1 <your-local-ip>
+```
 
 > [!CAUTION]
-> Querido Programador:  \
-> Cuando escribí este código, sólo Dios y yo \
-> sabíamos cómo funcionaba. Ahora, sólo Dios lo sabe. \
-> Así que si está tratando de 'optimizar' \
-> esta rutina y fracasa (seguramente), \
-> por favor, incremente el siguiente contador: \
-> como advertencia para el siguiente colega \
-> 
-> Bugs encontrados: 3 \
-> Horas perdidas: 912 \
->  :)
+> Mobile browsers will show an "untrusted" warning for self-signed certificates. You need to install the mkcert root CA on your device to enable the PWA service worker.
 
-## 🚀 Instalación en PC (Manual)
+1. Locate the mkcert root CA: `mkcert -CAROOT`
+2. Copy `rootCA.pem` to your phone
+3. Install it as a trusted CA certificate (Settings > Security > Certificate management)
+4. On iOS: also enable trust in Settings > General > About > Certificate Trust Settings
 
-### 1. Requisitos Previos
-- **Node.js** (v16 o superior)
-- **Python** (v3.8 o superior)
-- **FFmpeg** (Se gestiona automáticamente en el backend vía `static-ffmpeg`)
+Alternatively, use the `chrome://flags/#unsafely-treat-insecure-origin-as-secure` flag on Android/Chrome.
 
-### 2. Configuración del Frontend (npm / pnpm)
-1. Entra al directorio del frontend:
-   ```bash
-   cd Kordia_Frontend
-   ```
-2. Instala las dependencias:
-   ```bash
-   npm install
-   ```
-3. Configura el archivo `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-   Asegúrate de que `VITE_API_URL` apunte a tu backend (ej. `http://localhost:8000`).
-4. Inicia el desarrollo:
-   ```bash
-   npm run build
-   ```
-   *El frontend correrá en el backend*
+## SSL Certificates
 
-### 3. Configuración del Backend
-1. Entra al directorio del backend:
-   ```bash
-   cd Kordia_backend
-   ```
-2. Crea un entorno virtual e instálalo:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # En Linux/Mac
-   venv\Scripts\activate     # En Windows
-   ```
-3. Instala las dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Inicia el servidor:
-   ```bash
-   python -m app.main
-   ```
-   *El backend correrá en `http://localhost:8000`*
+If `cert.pem` and `key.pem` exist in the project root, the server starts in HTTPS mode automatically. Both files are gitignored.
 
----
+## License
 
-## 🐳 Instalación con Docker (Windows, Linux, Mac)
-
-Docker es la forma más sencilla de ejecutar Kordia en cualquier sistema operativo.
-
-1. Asegúrate de tener **Docker** y **Docker Compose** instalados.
-2. Navega a la carpeta del proyecto y ejecuta:
-   ```bash
-   docker-compose -f docker/docker-compose.yml up -d
-   ```
-3. La aplicación estará disponible en `https://tu-ip-local:8000`.
-
-> [!IMPORTANT]
-> Para que la PWA funcione correctamente en móviles, Docker utiliza **mkcert** para generar certificados SSL automáticos. Asegúrate de configurar la variable `MKCERT_DOMAINS` en el `docker-compose.yml` con la IP local de tu PC.
-
----
-
-## 📱 Instalación PWA en Móviles (Android / iOS)
-
-Para que Kordia funcione como una aplicación nativa en tu móvil (PWA) y soporte descargas offline, sigue estos pasos:
-
-### 1. Acceso seguro (HTTPS)
-Las PWA requieren **HTTPS** por seguridad. 
-- Si usas **Docker**: La aplicación ya sirve HTTPS en el puerto `8000`.
-- Si usas la instalación **Manual**: Deberás usar un túnel (como Cloudflare Tunnel o Ngrok) o un proxy inverso (como Nginx) para habilitar HTTPS.
-
-### 2. Pasos para instalar:
-1. Desde tu móvil, abre el navegador (Chrome en Android, Safari en iOS).
-2. Ingresa la dirección IP de tu PC con HTTPS (ej: `https://192.168.1.XX:8000`).
-3. **En Android (Chrome):** Toca los tres puntos `⋮` y selecciona **"Instalar aplicación"** o **"Agregar a la pantalla de inicio"**.
-4. **En iOS (Safari):** Toca el botón de compartir `⎙` y selecciona **"Añadir a la pantalla de inicio"**.
-
-### 3. Solución al error "Conexión No Segura" (Muy Importante)
-Incluso con HTTPS activado vía Docker, el móvil marcará la conexión como **"No Segura"** porque el certificado es de desarrollo (auto-firmado). Esto **bloqueará los Service Workers** y no podrás descargar música.
-
-Tienes dos formas de solucionarlo:
-
-#### Opción A: Instalar el certificado en tu móvil (Recomendado)
-
-Para que tu teléfono confíe en el HTTPS de tu PC y veas el "candado verde" sin advertencias, debes instalar el Certificado Raíz (Root CA) de mkcert en tu móvil.
-
-Aquí tienes los pasos detallados:
-
-1. **Obtén el certificado raíz en tu PC**
-   Primero, necesitas localizar el archivo del certificado que mkcert usa para firmar todos los demás:
-   ```bash
-   # Ejecuta esto en tu terminal para ver dónde está la carpeta
-   mkcert -CAROOT
-   ```
-   *   **En Windows:** `%LocalAppData%\mkcert`
-   *   **En Linux:** `~/.local/share/mkcert`
-   *   **En Mac:** `~/Library/Application Support/mkcert`
-   *   **Si usas Docker:** `docker cp kordia:/root/.local/share/mkcert/rootCA.pem ./rootCA.pem`
-
-   Copia el archivo llamado `rootCA.pem` de esa carpeta a tu teléfono (puedes enviártelo por Telegram, correo, o cable USB).
-
-2. **Genera el certificado de Kordia con tu IP local**
-   Para que el teléfono no dé error al entrar por la IP (ej. 192.168.1.50), el certificado debe incluir esa IP. Busca tu IP local con `ip addr` y luego regenera los archivos en `Kordia_backend/`:
-   ```bash
-   # Reemplaza 192.168.1.XX por tu IP real
-   mkcert -cert-file cert.pem -key-file key.pem localhost 127.0.0.1 ::1 192.168.1.XX
-   ```
-
-3. **Instala el certificado en tu teléfono**
-   - **En Android:**
-     1. Ve a **Ajustes > Seguridad > Cifrado y credenciales** (o busca "certificados" en la lupa).
-     2. Selecciona **Instalar desde el almacenamiento > Certificado de CA**.
-     3. El sistema te dará una advertencia (es normal, tú eres el dueño del servidor). Pulsa **Instalar de todas formas**.
-     4. Selecciona el archivo `rootCA.pem` que pasaste anteriormente.
-   - **En iOS (iPhone):**
-     1. Abre el archivo `rootCA.pem` y pulsa **Instalar perfil**.
-     2. Ve a **Ajustes > Perfil descargado** e instálalo.
-     3. **Paso CRÍTICO en iOS:** Ve a **Ajustes > General > Información > Ajustes de confianza de certificados**.
-     4. Activa el interruptor de **mkcert development CA** para darle confianza total.
-
-4. **Verifica y disfruta**
-   Reinicia el backend de Kordia. Ahora, cuando entres desde el navegador de tu móvil a `https://<tu-ip>:8000`:
-   - Verás el **candado verde**.
-   - Podrás instalar la PWA como si fuera una app nativa.
-   - Todas las funciones Offline funcionarán correctamente.
-
-¡Con esto ya tienes un entorno de desarrollo profesional en toda tu red local! 🐧🔒📱
-
-#### Opción B: Bypass en Chrome (Solo Android/Desktop)
-Si no quieres instalar cerficados, puedes forzar a Chrome a tratar tu IP como segura:
-1. Abre `chrome://flags/#unsafely-treat-insecure-origin-as-secure` en Chrome.
-2. Activa la opción (**Enabled**).
-3. En el cuadro de texto, pega la URL de tu app (ej: `https://192.168.1.XX:8000`).
-4. Reinicia Chrome.
-
-### 4. ¡Listo!
-Ahora puedes abrir Kordia desde tu menú de aplicaciones, buscar canciones y darle al botón de **descargar** para escucharlas sin internet.
-
-
----
-
-## ⚙️ Configuración Útil (Variables de Entorno)
-
-| Variable | Propósito |
-|----------|-----------|
-| `CORS_ORIGINS` | Dominios que pueden acceder a la API (usa `*` para desarrollo). |
-| `DATA_DIR` | Donde se guardan las canciones y la base de datos. |
-| `MKCERT_DOMAINS` | IPs o dominios para los que se generará el certificado SSL. |
-
----
-*Hecho con ❤️ para los amantes de la música.*
+GNU General Public License v3.0
