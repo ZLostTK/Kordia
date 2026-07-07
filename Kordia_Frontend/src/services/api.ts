@@ -42,11 +42,12 @@ export const api = {
         if (song.thumbnail) {
           try {
             const thumbCache = await caches.open('yt-thumbnails');
-            const thumbRes = await fetch(song.thumbnail, { mode: 'no-cors' });
-            await thumbCache.put(song.thumbnail, thumbRes);
+            const thumbRes = await fetch(song.thumbnail);
+            if (thumbRes.ok) {
+              await thumbCache.put(song.thumbnail, thumbRes);
+            }
           } catch (tErr) {
             console.warn('Failed to cache thumbnail:', tErr);
-            // No bloqueamos la descarga si falla el thumbnail
           }
         }
 
