@@ -17,16 +17,31 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.kordia.app"
+      "package": "com.kordia.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-sqlite",
-      ["expo-audio", {
-        "enableBackgroundPlayback": true
-      }]
-    ]
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ba5125b1-b1a4-4146-ab3f-db510d25fce2"
+      }
+    },
+    "owner": "zlosttk"
   }
 }
