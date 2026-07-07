@@ -5,10 +5,19 @@ interface SearchEntry { id?: string; title?: string; uploader?: string; channel?
 interface PlaylistMeta { title?: string; entries?: SearchEntry[]; }
 
 export class YouTubeService {
-  private baseArgs: string[] = [];
+  private baseArgs: string[] = ['--no-progress'];
   constructor() {
     if (config.ytdlpQuiet) this.baseArgs.push('--quiet');
     if (config.ytdlpNoWarnings) this.baseArgs.push('--no-warnings');
+  }
+
+  /** Find the last valid JSON line in output */
+  private lastJson<T>(out: string): T {
+    const lines = out.trim().split('\n').filter(Boolean);
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try { return JSON.parse(lines[i]); } catch {}
+    }
+    throw new Error('No valid JSON in yt-dlp output');
   }
 
   search(query: string, maxResults = 10): SearchEntry[] {
@@ -35,8 +44,7 @@ export class YouTubeService {
       '--postprocessor-args', `-acodec ${config.audioCodec}`,
       `https://youtube.com/watch?v=${ytid}`,
     ]);
-    const lastLine = out.trim().split('\n').pop()!;
-    return JSON.parse(lastLine);
+    return this.lastJson(out);
   }
 
   fastDownloadAudio(ytid: string, outputPath: string): string {
@@ -46,7 +54,8 @@ export class YouTubeService {
       '--print', '%(ext)s',
       `https://youtube.com/watch?v=${ytid}`,
     ]);
-    return out.trim().split('\n').pop() || 'm4a';
+    const lines = out.trim().split('\n').filter(Boolean);
+    return lines[lines.length - 1] || 'm4a';
   }
 
   getVideoInfo(ytid: string): { ytid: string; title: string; artist: string; thumbnail: string; duration: number } {
@@ -54,7 +63,7 @@ export class YouTubeService {
       ...this.baseArgs, '--skip-download', '--dump-json',
       `https://youtube.com/watch?v=${ytid}`,
     ]);
-    const info = JSON.parse(out.trim().split('\n').pop()!);
+    const info = this.lastJson<Record<string, any>>(out);
     return { ytid, title: info.title, artist: info.uploader, thumbnail: info.thumbnail, duration: info.duration };
   }
 
@@ -71,7 +80,7 @@ export class YouTubeService {
       '--playlist-items', '0',
       finalUrl,
     ]);
-    const meta = JSON.parse(metaOut.trim().split('\n').pop()!);
+    const meta = this.lastJson<{ title?: string }>(metaOut);
 
     // Second call: get flat song entries
     const songsOut = this.run([
