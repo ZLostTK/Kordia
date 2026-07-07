@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { DatabaseSync } from 'node:sqlite';
 
 interface PlaylistRow { id: string; name: string; cover_thumbnail: string | null; created_at: string; }
 interface JoinRow extends PlaylistRow { ytid: string | null; title: string | null; artist: string | null; thumbnail: string | null; song_order: number | null; }
@@ -7,10 +7,10 @@ interface SongDict { ytid: string; title: string; artist: string | null; thumbna
 interface PlaylistDict { id: string; name: string; coverThumbnail: string | null; createdAt: string; songs: SongDict[]; }
 
 export class PlaylistRepository {
-  constructor(private db: Database.Database) {}
+  constructor(private db: DatabaseSync) {}
 
-  private playlistWithSongs(sql: string, params?: unknown[]): PlaylistDict[] {
-    const rows = this.db.prepare(sql).all(...(params ?? [])) as JoinRow[];
+  private playlistWithSongs(sql: string, params?: any[]): PlaylistDict[] {
+    const rows = this.db.prepare(sql).all(...(params ?? [])) as unknown as JoinRow[];
     const map = new Map<string, PlaylistDict>();
     for (const r of rows) {
       if (!map.has(r.id)) {
@@ -44,7 +44,7 @@ export class PlaylistRepository {
   getPlaylistSongs(playlistId: string): SongDict[] {
     return this.db.prepare(
       'SELECT ytid, title, artist, thumbnail FROM playlist_songs WHERE playlist_id = ? ORDER BY song_order ASC'
-    ).all(playlistId) as SongDict[];
+    ).all(playlistId) as unknown as SongDict[];
   }
 
   createPlaylist(id: string, name: string): PlaylistDict {

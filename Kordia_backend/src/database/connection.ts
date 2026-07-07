@@ -1,22 +1,22 @@
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import { config } from '../config/env.js';
 import { SCHEMAS, INDEXES } from './schema.js';
 
-let db: Database.Database | null = null;
+let db: DatabaseSync | null = null;
 
-export function getDb(): Database.Database {
+function getDbRaw(): DatabaseSync {
   if (!db) {
-    db = new Database(config.dbPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    initSchema();
+    db = new DatabaseSync(config.dbPath);
+    db.exec('PRAGMA journal_mode = WAL');
+    db.exec('PRAGMA foreign_keys = ON');
+    for (const sql of SCHEMAS) db.exec(sql);
+    for (const sql of INDEXES) db.exec(sql);
   }
   return db;
 }
 
-function initSchema(): void {
-  for (const sql of SCHEMAS) db!.exec(sql);
-  for (const sql of INDEXES) db!.exec(sql);
+export function getDb(): DatabaseSync {
+  return getDbRaw();
 }
 
 export function closeDb(): void {

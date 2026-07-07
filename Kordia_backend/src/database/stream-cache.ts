@@ -24,7 +24,7 @@ export class StreamCacheRepository extends BaseRepository {
   deleteOldEntries(days: number): number {
     const cutoff = new Date(Date.now() - days * 86400000).toISOString();
     const result = this.execute('DELETE FROM stream_cache WHERE timestamp < ?', [cutoff]);
-    return result.changes;
+    return Number(result.changes);
   }
 
   clearCache(): void {
