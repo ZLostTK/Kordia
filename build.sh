@@ -11,40 +11,49 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="$SCRIPT_DIR/Kordia_Frontend"
 BACKEND_DIR="$SCRIPT_DIR/Kordia_backend"
 
-echo "🎵 Kordia Build Script"
-echo "======================"
+echo "Kordia Build Script"
+echo "==================="
 
 # 1. Build del frontend
 echo ""
-echo "📦 [1/2] Construyendo frontend React..."
-cd "$FRONTEND_DIR"
+echo "[1/2] Construyendo frontend..."
 
-# Instalar dependencias si no existen
-if [ ! -d "node_modules" ]; then
-    echo "   Instalando dependencias npm..."
-    npm install
+# Preferir pnpm, fallback a npm
+if command -v pnpm &>/dev/null; then
+  PKG_MGR="pnpm"
+else
+  PKG_MGR="npm"
 fi
 
-npm run build
-echo "   ✓ Build completado → $BACKEND_DIR/dist/"
+cd "$FRONTEND_DIR"
+if [ ! -d "node_modules" ]; then
+    echo "   Instalando dependencias con $PKG_MGR..."
+    $PKG_MGR install
+fi
+
+$PKG_MGR run build
+echo "  Build completado -> $BACKEND_DIR/dist/"
 
 # 2. Arrancar el backend (a menos que se pase --no-start)
 if [ "$1" != "--no-start" ]; then
     echo ""
-    echo "🚀 [2/2] Iniciando backend FastAPI..."
+    echo "[2/2] Iniciando backend TypeScript..."
     cd "$BACKEND_DIR"
 
-    # Activar venv si existe
-    if [ -f "venv/bin/activate" ]; then
-        source venv/bin/activate
-    elif [ -f ".venv/bin/activate" ]; then
-        source .venv/bin/activate
+    # Preferir pnpm, fallback a npx
+    if command -v pnpm &>/dev/null; then
+      EXEC="pnpm"
+    else
+      EXEC="npx"
     fi
 
     echo ""
-    echo "   → Abre http://localhost:8000 en tu navegador"
-    echo "   → API docs en http://localhost:8000/docs"
-    echo "   → Presiona Ctrl+C para detener"
+    echo "  -> Abre http://localhost:8000 en tu navegador"
+    echo "  -> Presiona Ctrl+C para detener"
     echo ""
-    python3 -m app.main
+
+    if [ ! -d "node_modules" ]; then
+      $EXEC install
+    fi
+    $EXEC tsx src/main.ts
 fi
